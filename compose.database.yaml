@@ -1,0 +1,22 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: syncspace
+      POSTGRES_USER: syncspace
+      POSTGRES_PASSWORD: ${SYNCSPACE_DB_PASSWORD:?Set SYNCSPACE_DB_PASSWORD in .env}
+    volumes:
+      - syncspace_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U syncspace -d syncspace"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - syncspace_internal
+volumes:
+  syncspace_postgres_data:
+networks:
+  syncspace_internal:
+    internal: true
