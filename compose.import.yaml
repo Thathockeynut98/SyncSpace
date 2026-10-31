@@ -1,5 +1,4 @@
-# One-time importer. CSV exports stay on the host and are mounted read-only.
-# The importer needs internet access to install psycopg, plus internal DB access.
+# One-time importer. Mount only private Base44 CSV exports.
 services:
   importer:
     image: python:3.12-slim
@@ -9,7 +8,11 @@ services:
       - ./scripts:/work/scripts:ro
       - ${SYNCSPACE_EXPORT_DIR:?Set SYNCSPACE_EXPORT_DIR to your private CSV folder}:/imports:ro
     environment:
-      DATABASE_URL: postgresql://syncspace:${SYNCSPACE_DB_PASSWORD:?Set database password in .env}@db:5432/syncspace
+      PGHOST: db
+      PGPORT: "5432"
+      PGDATABASE: syncspace
+      PGUSER: syncspace
+      PGPASSWORD: ${SYNCSPACE_DB_PASSWORD:?Set database password in .env}
     command: ["sh", "-c", "pip install --no-cache-dir 'psycopg[binary]>=3.2,<4' && python scripts/import_csv.py --directory /imports"]
     networks:
       - syncspace_internal
