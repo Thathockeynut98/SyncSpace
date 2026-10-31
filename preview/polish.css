@@ -1,0 +1,37 @@
+/* SyncSpace 2.0 — presentation layer only. No content or keys leave the browser. */
+:root{--ss-bg:#090a16;--ss-surface:#15182b;--ss-surface-raised:#1d2039;--ss-line:rgba(190,178,255,.13);--ss-text:#f5f1ff;--ss-muted:#aaaac6;--ss-purple:#a78bfa;--ss-pink:#ed9ce4}
+html{scroll-behavior:smooth}*{box-sizing:border-box}body{background:radial-gradient(ellipse 52% 45% at 86% 0%,#3c205e40,transparent),radial-gradient(ellipse 48% 44% at 22% 80%,#212a5a30,transparent),var(--ss-bg);color:var(--ss-text);min-height:100vh}
+button,input{transition:border-color .18s,background .18s,box-shadow .18s,transform .18s}
+button:focus-visible,input:focus-visible{outline:2px solid #d3b7ff;outline-offset:3px}
+button:hover:not(:disabled){filter:brightness(1.1)}button:active:not(:disabled){transform:scale(.985)}
+.card{background:linear-gradient(145deg,#1c1e35ed,#15172bed);border:1px solid var(--ss-line);box-shadow:0 20px 55px #00000025;backdrop-filter:blur(14px)}
+.card h2{font-size:clamp(21px,2vw,27px)}.card h3{color:#e9dfff}
+.muted{color:var(--ss-muted)}
+#brand{box-shadow:8px 0 50px #00000022}#brand .symbol{border-radius:17px;box-shadow:0 8px 25px #8b5cf64d}
+#tabs{scrollbar-width:thin;scrollbar-color:#554776 transparent}
+#tabs button{font-weight:600;letter-spacing:.005em;display:flex;align-items:center;gap:12px;min-height:44px}
+#tabs button .nav-icon{font-size:17px;width:22px;text-align:center;filter:saturate(.8)}
+#tabs button.active{background:linear-gradient(105deg,#5e4bc6,#854cbb);box-shadow:inset 0 1px #ffffff24,0 8px 20px #5c3ba030}
+#tabs button:not(.active):hover{background:#ffffff0d;color:#f5f0ff}
+#welcome{background:linear-gradient(120deg,#302a6a,#382254 65%,#231a39);border:1px solid #a48cf338;box-shadow:0 18px 70px #1b134b45}
+#welcome>span{color:#d1b8ff;font-size:11px;font-weight:800;letter-spacing:.15em}
+#welcome p{max-width:500px;line-height:1.7}
+.overview-tile{min-height:140px;box-shadow:none}.overview-tile strong{font-size:35px;letter-spacing:-.05em}.overview-tile:hover{transform:translateY(-3px);background:#ffffff10}
+#chat-pane{max-width:1050px}#chat-pane>.card{display:flex;flex-direction:column;min-height:min(75vh,750px)}
+#messages{flex:1;min-height:320px;max-height:60vh;padding:20px 10px;background:linear-gradient(180deg,#111428aa,#18182b66);border:1px solid #ffffff0a;border-radius:18px;scrollbar-color:#4f416e transparent;scrollbar-width:thin}
+#messages .message{max-width:min(76%,560px);padding:12px 17px;border-radius:17px;box-shadow:0 5px 15px #00000018;line-height:1.55}
+#messages .message.own{border-bottom-right-radius:5px;background:linear-gradient(135deg,#59479c,#4c3a86);border:1px solid #ae91ef38}
+#messages .message.other{border-bottom-left-radius:5px;background:#262943;border:1px solid #ffffff12}
+#messages .message.failed{max-width:90%;background:#3a253b55;border:1px dashed #b76e9b}
+#messages .message .stamp{color:#c5bddc;font-size:11px}
+#composer{position:sticky;bottom:0;padding:10px 0 0;background:#191b2d}#composer input{border-radius:15px;padding:15px 18px;background:#0e1123}#composer button{border-radius:15px;padding:14px 23px}
+#joincode{width:100%;max-width:480px}#send-hint{line-height:1.5}
+#vault-card{border-color:#a78bfa25}#vault-items .vault-entry{background:#ffffff08;line-height:1.65}
+#login{max-width:470px;margin:13vh auto;padding:36px!important}#login h2{font-size:30px}#login button{width:100%;margin-top:16px}
+body:has(#login:not([hidden])) main{padding:24px;max-width:850px}body:has(#login:not([hidden])) #brand{position:relative;width:auto;height:auto;background:none;border:0;box-shadow:none;padding:12px 0}body:has(#login:not([hidden])) #tabs{display:none}
+#other-pane .card{min-height:380px}.feature-preview{background:linear-gradient(135deg,#ffffff08,#8b5cf50a)}
+#status{font-size:13px;color:#c7b9ed;min-height:1.3em}
+.tab-pane:not([hidden]){animation:ss-enter .24s ease both}@keyframes ss-enter{from{opacity:.65;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:900px){#tabs button{gap:8px;min-height:42px}#tabs button .nav-icon{width:auto}#welcome{margin-top:18px}#login{margin:7vh auto}#messages{max-height:57vh}}
+@media(max-width:600px){#brand{padding:14px 2px}#tabs{margin:4px 0 18px}#tabs button{padding:10px 13px}#app .card{padding:18px}#welcome:after{right:8px;font-size:70px}#chat-pane>.card{min-height:70vh}#messages{min-height:300px;max-height:53vh;padding:12px 7px}#messages .message{max-width:90%;font-size:14px}#composer{gap:6px}#composer button{padding:12px 15px}#login{padding:24px!important}#logout{font-size:13px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
