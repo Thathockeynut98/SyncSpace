@@ -1,0 +1,53 @@
+name: Test SyncSpace development
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: syncspace_test
+          POSTGRES_USER: syncspace_test
+          POSTGRES_PASSWORD: isolated_ci_password
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U syncspace_test -d syncspace_test" --health-interval 2s --health-timeout 5s --health-retries 30
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGDATABASE: syncspace_test
+      PGUSER: syncspace_test
+      PGPASSWORD: isolated_ci_password
+      SYNCSPACE_INTEGRATION: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+      - run: npm ci
+        working-directory: api
+      - name: Initialize isolated database and start API
+        run: |
+          set -euo pipefail
+          for schema in database/*.sql; do psql -v ON_ERROR_STOP=1 -f "$schema"; done
+          node api/server.js > /tmp/syncspace-api.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4000/health; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - run: npm test
+        working-directory: api
+      - name: Browser tests with synthetic fixtures
+        working-directory: api
+        run: |
+          set -euo pipefail
+          npx playwright install --with-deps chromium
+          export CHROMIUM_PATH="$(node -e 'console.log(require("playwright").chromium.executablePath())')"
+          python3 -m http.server 3002 --directory ../preview > /tmp/syncspace-preview.log 2>&1 &
+          npm run test:browser
+          npm run test:calls:browser

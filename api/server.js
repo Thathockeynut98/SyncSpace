@@ -1,11 +1,13 @@
 import http from "node:http";
 import pg from "pg";
+import {handleCalling} from "./calling.js";
+import {handleMessages} from "./messaging.js";
 import { normalizeEmail, verifyPassword, newToken, tokenHash } from "./auth.js";
 const pool = new pg.Pool({ host: process.env.PGHOST || "db", port: Number(process.env.PGPORT || 5432), database: process.env.PGDATABASE || "syncspace", user: process.env.PGUSER || "syncspace", password: process.env.PGPASSWORD, max: 5 });
 function reply(res, status, data) { res.writeHead(status, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" }); res.end(JSON.stringify(data)); }
 async function bodyJson(req) {
   let text = "";
-  for await (const chunk of req) { text += chunk; if (text.length > 8192) throw new Error("Request too large"); }
+  for await (const chunk of req) { text += chunk; if (text.length > 20000) throw new Error("Request too large"); }
   return JSON.parse(text || "{}");
 }
 async function accountFromToken(req) {
@@ -53,35 +55,8 @@ const server = http.createServer(async (req, res) => {
       }).map(({source_id,original_row:row}) => ({id:source_id,name:row.name}));
       return reply(res, 200, { spaces });
     }
-    if ((req.method === "GET" || req.method === "POST") && path.startsWith("/spaces/") && path.endsWith("/messages")) {
-      const account = await accountFromToken(req);
-      if (!account) return reply(res, 401, { error: "Unauthorized" });
-      const parts = path.split("/");
-      if (parts.length !== 4 || !/^[a-zA-Z0-9_-]{1,100}$/.test(parts[2])) return reply(res, 404, { error: "Not found" });
-      const spaceId = parts[2];
-      const found = await pool.query("SELECT original_row FROM migration.imported_records WHERE entity_type='Space' AND source_id=$1", [spaceId]);
-      if (!found.rowCount) return reply(res, 404, { error: "Not found" });
-      let members;
-      try { members = JSON.parse(found.rows[0].original_row.member_emails || "[]"); } catch { members = []; }
-      if (!Array.isArray(members) || !members.some(e => normalizeEmail(e) === account.email)) return reply(res, 404, { error: "Not found" });
-      if (req.method === "POST") {
-        const data = await bodyJson(req);
-        const valid = (v, min, max) => typeof v === "string" && v.length >= min && v.length <= max && /^[A-Za-z0-9+/=]+$/.test(v);
-        if (!valid(data.iv, 16, 32) || !valid(data.cipher, 20, 7000)) return reply(res, 400, { error: "Invalid encrypted payload" });
-        const inserted = await pool.query(
-          "INSERT INTO app.messages(space_id,account_id,cipher,iv) VALUES($1,$2,$3,$4) RETURNING id,created_at",
-          [spaceId,account.id,data.cipher,data.iv]
-        );
-        return reply(res, 201, { id: "local-"+inserted.rows[0].id, createdDate: inserted.rows[0].created_at });
-      }
-      const [imported, recent] = await Promise.all([
-        pool.query("SELECT source_id,original_row FROM migration.imported_records WHERE entity_type='Message' AND original_row->>'space_id'=$1 ORDER BY original_row->>'created_date' ASC LIMIT 500", [spaceId]),
-        pool.query("SELECT m.id,m.cipher,m.iv,m.created_at,a.email FROM app.messages m JOIN app.accounts a ON a.id=m.account_id WHERE m.space_id=$1 ORDER BY m.created_at ASC,m.id ASC LIMIT 500", [spaceId])
-      ]);
-      const messages = imported.rows.map(({source_id,original_row:r}) => ({id:source_id,authorId:r.author_id,cipher:r.cipher,iv:r.iv,createdDate:r.created_date}));
-      messages.push(...recent.rows.map(row => ({id:"local-"+row.id,authorId:row.email,cipher:row.cipher,iv:row.iv,createdDate:row.created_at})));
-      return reply(res, 200, { spaceId, messages, encrypted: true });
-    }
+    if (await handleCalling({req,res,url:new URL(req.url,"http://localhost"),pool,accountFromToken,reply,bodyJson})) return;
+    if (await handleMessages({req,res,url:new URL(req.url,"http://localhost"),pool,accountFromToken,reply,bodyJson})) return;
     if (/^\/spaces\/[A-Za-z0-9_-]{1,100}\/vault(?:\/items)?$/.test(path) && ["GET","POST"].includes(req.method)) {
       const account = await accountFromToken(req);
       if (!account) return reply(res,401,{error:"Unauthorized"});
@@ -146,7 +121,7 @@ const server = http.createServer(async (req, res) => {
     }
     return reply(res, 404, { error: "Not found" });
   } catch (error) {
-    console.error("Request failed:", error.message);
+    console.error("Request failed", {code: error.code || "REQUEST_ERROR"});
     return reply(res, error instanceof SyntaxError ? 400 : 500, { error: "Request failed" });
   }
 });
