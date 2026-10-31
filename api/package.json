@@ -7,10 +7,13 @@
     "start": "node server.js",
     "test": "node --test test/*.test.js",
     "test:browser": "node test/preview.browser.cjs",
-    "test:calls:browser": "node test/calling.browser.cjs"
+    "test:calls:browser": "node test/calling.browser.cjs",
+    "test:react": "node test/react.integration.browser.cjs",
+    "diagnose:encoding": "node scripts/diagnose-message-encoding.js"
   },
   "dependencies": {
-    "pg": "^8.13.1"
+    "pg": "^8.13.1",
+    "ws": "^8.22.0"
   },
   "devDependencies": {
     "playwright": "^1.56.1"

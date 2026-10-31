@@ -14,13 +14,17 @@ function toBase64(buffer) {
   return btoa(binary);
 }
 
-function fromBase64(value) {
-  const binary = atob(value);
-  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+export function fromBase64(value) {
+  if(typeof value!=='string'||!value.length||value.length%4||!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value))throw Error('Invalid Base64 encoding');
+  const bytes=Uint8Array.from(atob(value),char=>char.charCodeAt(0));
+  if(toBase64(bytes)!==value)throw Error('Noncanonical Base64 encoding');
+  return bytes;
 }
+export function clearSpaceKeys(){cache.clear()}
 
 export async function spaceKey(space) {
-  const cacheKey = `${space.id}:${space.invite_code}`;
+  if(!space.invite_code||!space.id)throw Error('Room encryption information is missing.');
+  const cacheKey = `${space.encryption_space_id||space.id}:${space.invite_code}`;
   if (cache.has(cacheKey)) return cache.get(cacheKey);
 
   const encoder = new TextEncoder();
@@ -34,7 +38,7 @@ export async function spaceKey(space) {
   const key = await crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt: encoder.encode(space.id),
+      salt: encoder.encode(space.encryption_space_id||space.id),
       iterations: ITERATIONS,
       hash: 'SHA-256',
     },
@@ -59,7 +63,7 @@ export async function encryptText(key, text) {
 }
 
 export async function decryptText(key, cipher, iv) {
-  if (!cipher || !iv) return '';
+  if (!cipher || !iv) throw Error('Encrypted fields are missing');
   const plain = await crypto.subtle.decrypt(
     { name: 'AES-GCM', iv: fromBase64(iv) },
     key,

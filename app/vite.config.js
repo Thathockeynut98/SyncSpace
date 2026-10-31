@@ -13,6 +13,7 @@ export default defineConfig({
     port: 3003,
     strictPort: true,
     proxy: {
+      "/rt": { target: "ws://127.0.0.1:4000", ws: true },
       "/api-test": {
         target: "http://127.0.0.1:4001",
         changeOrigin: true,

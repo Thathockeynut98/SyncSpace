@@ -1,32 +1,22 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Loader2, Lock, Search, X } from 'lucide-react';
 import { displayName } from '@/lib/spaceData';
 import { cn } from '@/lib/utils';
-import { decryptText, encryptText, spaceKey } from '@/lib/spaceCrypto';
+import { useMessages } from '@/lib/useMessages';
 import ChatComposer from './chat/ChatComposer';
 import ChatMessage from './chat/ChatMessage';
 import MessageAlertsButton from './chat/MessageAlertsButton';
 import PinnedMessages from './chat/PinnedMessages';
 import TypingIndicator from './chat/TypingIndicator';
 
-const UNREADABLE = 'This message could not be opened on this device.';
-
 export default function ChatRoom({ space, user, room, compact = false }) {
-  const [messages, setMessages] = useState([]);
-  const [sending, setSending] = useState(false);
-  const [ready, setReady] = useState(false);
-  const [error, setError] = useState('');
-  const [partnerTyping, setPartnerTyping] = useState(false);
-  const [search, setSearch] = useState('');
-  const [searchOpen, setSearchOpen] = useState(false);
-  const keyRef = useRef(null);
-  const listRef = useRef(null);
-  const sentAtRef = useRef(0);
-  const typingTimer = useRef(null);
-
-  const myName = displayName(user);
-  const partnerName = (space.member_names || []).find((name) => name !== myName) || 'your person';
-
+  const {messages,sending,ready,error,load,send,retry,toggleHeart,togglePin}=useMessages(space,user,room);
+  const [partnerTyping,setPartnerTyping]=useState(false);
+  const [search,setSearch]=useState('');
+  const [searchOpen,setSearchOpen]=useState(false);
+  const listRef=useRef(null),bottomRef=useRef(true),sentAtRef=useRef(0),typingTimer=useRef(null);
+  const myName=displayName(user);
+  const partnerName=(space.member_names||[]).find(name=>name!==myName)||'your person';
   // A quiet pulse to the room while one of us is writing, and a fade if it stops.
   useEffect(() => {
     if (!room) return undefined;
@@ -49,105 +39,9 @@ export default function ChatRoom({ space, user, room, compact = false }) {
     room?.send({ type: 'typing', on: true });
   };
 
-  const api = useCallback(async (path, options = {}) => {
-    const token = sessionStorage.getItem('syncspace21_session');
-    if (!token) throw new Error('Please sign in again.');
-    const response = await fetch(`/api${path}`, {
-      ...options,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-        ...(options.headers || {}),
-      },
-    });
-    if (!response.ok) throw new Error(`Messaging request failed (HTTP ${response.status})`);
-    return response.json();
-  }, []);
-
-  const load = useCallback(async (quiet = false) => {
-    try {
-      if (!quiet) setReady(false);
-      const result = await api(`/spaces/${encodeURIComponent(space.id)}/messages`);
-      const key = keyRef.current || (await spaceKey(space));
-      keyRef.current = key;
-      const records = Array.isArray(result.messages) ? result.messages : [];
-      const opened = await Promise.all(records.map(async (record) => {
-        let body = UNREADABLE;
-        try { body = await decryptText(key, record.cipher, record.iv); } catch { /* preserve placeholder */ }
-        return {
-          ...record,
-          body,
-          author_id: record.author_id ?? record.authorId,
-          author_name: record.author_name ?? record.authorName ?? 'Your person',
-          created_date: record.created_date ?? record.createdDate,
-          hearts: [],
-          pinned: false,
-        };
-      }));
-      opened.sort((a, b) => new Date(a.created_date || 0) - new Date(b.created_date || 0));
-      setMessages((previous) => opened.map((message) => {
-        const existing = previous.find((item) => item.id === message.id);
-        return existing ? { ...message, hearts: existing.hearts, pinned: existing.pinned, pinned_by_name: existing.pinned_by_name } : message;
-      }));
-      setError('');
-    } catch (err) {
-      setError(err.message || 'Unable to load messages.');
-    } finally {
-      setReady(true);
-    }
-  }, [api, space]);
-
-  useEffect(() => {
-    keyRef.current = null;
-    setMessages([]);
-    load();
-    const timer = window.setInterval(() => load(true), 4000);
-    const onFocus = () => load(true);
-    window.addEventListener('focus', onFocus);
-    return () => { window.clearInterval(timer); window.removeEventListener('focus', onFocus); };
-  }, [load]);
-
-  useEffect(() => {
-    const list = listRef.current;
-    if (list) list.scrollTop = list.scrollHeight;
-  }, [messages.length, ready]);
-
-  const send = async (body) => {
-    if (!body?.trim() || sending) return;
-    setSending(true);
-    try {
-      const key = keyRef.current || (await spaceKey(space));
-      keyRef.current = key;
-      const { cipher, iv } = await encryptText(key, body.trim().slice(0, 2000));
-      await api(`/spaces/${encodeURIComponent(space.id)}/messages`, {
-        method: 'POST',
-        body: JSON.stringify({ cipher, iv, authorName: myName }),
-      });
-      room?.send({ type: 'typing', on: false });
-      sentAtRef.current = 0;
-      await load(true);
-    } catch (err) {
-      setError(err.message || 'Unable to send message.');
-      throw err;
-    } finally {
-      setSending(false);
-    }
-  };
-
-  // Reactions and pins remain session-local until corresponding API endpoints exist.
-  const toggleHeart = (message) => {
-    setMessages((current) => current.map((item) => item.id === message.id
-      ? { ...item, hearts: item.hearts.includes(user.id)
-        ? item.hearts.filter((id) => id !== user.id)
-        : [...item.hearts, user.id] }
-      : item));
-  };
-
-  const togglePin = (message) => {
-    setMessages((current) => current.map((item) => item.id === message.id
-      ? { ...item, pinned: !item.pinned, pinned_by_name: item.pinned ? '' : myName }
-      : item));
-  };
+  useEffect(()=>{
+    const list=listRef.current;if(list&&bottomRef.current)list.scrollTop=list.scrollHeight;
+  },[messages,ready]);
 
   const query = search.trim().toLowerCase();
   const visible = query
@@ -156,7 +50,7 @@ export default function ChatRoom({ space, user, room, compact = false }) {
   const pinnedMessages = messages.filter((message) => message.pinned);
 
   return (
-    <section
+    <section data-chat-compact={String(compact)}
       className={cn(
         'glass-card flex flex-col overflow-hidden rounded-3xl shadow-soft',
         compact
@@ -249,6 +143,8 @@ export default function ChatRoom({ space, user, room, compact = false }) {
 
       <div
         ref={listRef}
+        data-testid="message-list"
+        onScroll={()=>{const list=listRef.current;bottomRef.current=list.scrollHeight-list.scrollTop-list.clientHeight<80}}
         className={cn(
           'min-h-0 flex-1 overflow-y-auto',
           compact ? 'space-y-2 px-3 py-2.5' : 'space-y-2.5 px-4 py-4'
@@ -294,11 +190,12 @@ export default function ChatRoom({ space, user, room, compact = false }) {
           <ChatMessage
             key={message.id}
             message={message}
-            mine={message.author_id === user.id}
+            mine={String(message.author_id) === String(user.id) || message.author_id?.toLowerCase() === user.email?.toLowerCase() || message.authorEmail?.toLowerCase() === user.email?.toLowerCase()}
             user={user}
             compact={compact}
             onHeart={toggleHeart}
             onPin={togglePin}
+            onRetry={retry}
           />
         ))}
       </div>

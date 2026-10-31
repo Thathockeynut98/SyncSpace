@@ -13,7 +13,7 @@ export default function ChatComposer({ onSend, onTyping, sending, partnerName, c
     event.preventDefault();
     const body = draft.trim();
     if (!body || sending) return;
-    await onSend(body);
+    try { await onSend(body); } catch { return; }
     setDraft('');
     setPanel(null);
   };
@@ -37,7 +37,7 @@ export default function ChatComposer({ onSend, onTyping, sending, partnerName, c
   const sendSticker = async (sticker) => {
     if (sending) return;
     setPanel(null);
-    await onSend(sticker);
+    try { await onSend(sticker); } catch { /* Keep the composer available for retry. */ }
   };
 
   const toggle = (next) => setPanel((current) => (current === next ? null : next));

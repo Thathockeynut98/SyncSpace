@@ -61,7 +61,7 @@ export default function CallRoom({ call }) {
           <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
             {call.elsewhere
               ? 'Bring it here and this device takes it up. The other one lets go of the microphone and the line, so the call follows you in one tap.'
-              : 'Voice, camera and screen share run straight between your two devices, peer to peer. Nothing is recorded and nothing is stored.'}
+              : 'Voice, camera and screen sharing use encrypted WebRTC transport, directly or through a relay. SyncSpace does not record calls.'}
           </p>
 
           {(call.error || call.notice) && (
@@ -131,7 +131,7 @@ export default function CallRoom({ call }) {
           </h2>
           <p className="text-[11px] text-muted-foreground">
             {call.phase === 'live'
-              ? 'Connected'
+              ? `Connected · ${Math.floor(call.duration/60)}:${String(call.duration%60).padStart(2,'0')}`
               : call.phase === 'waiting'
                 ? 'They will join as soon as they answer'
                 : 'Connecting…'}

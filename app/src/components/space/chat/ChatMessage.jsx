@@ -12,7 +12,7 @@ function isSticker(text) {
 
 function MessageActions({ message, myId, onHeart, onPin }) {
   const hearts = message.hearts || [];
-  const hearted = hearts.includes(myId);
+  const hearted = message.hearted ?? hearts.includes(myId);
 
   return (
     <div
@@ -34,7 +34,7 @@ function MessageActions({ message, myId, onHeart, onPin }) {
         )}
       >
         <Heart className={cn('h-3 w-3', hearted && 'fill-current')} />
-        {hearts.length > 0 && hearts.length}
+        {(message.heartCount ?? hearts.length) > 0 && (message.heartCount ?? hearts.length)}
       </button>
       <button
         type="button"
@@ -53,9 +53,11 @@ function MessageActions({ message, myId, onHeart, onPin }) {
   );
 }
 
-export default function ChatMessage({ message, mine, user, compact = false, onHeart, onPin }) {
+export default function ChatMessage({ message, mine, user, compact = false, onHeart, onPin, onRetry }) {
   const sticker = isSticker(message.body);
-  const actions = (
+  const actions = message.pending ? (
+    <div role="status" className="text-xs text-slate-400">{message.sending ? "Sending…" : message.failed ? "Send failed" : "Queued offline"}<button type="button" disabled={message.sending} onClick={onRetry} className="ml-2 underline">Retry message</button></div>
+  ) : (
     <MessageActions
       message={message}
       myId={user?.id}
@@ -76,7 +78,7 @@ export default function ChatMessage({ message, mine, user, compact = false, onHe
           <p className={compact ? 'text-2xl leading-none' : 'text-4xl leading-none'}>
             {message.body}
           </p>
-          <p className="mt-1 text-[10px] text-slate-500">{clockTime(message.created_date)}</p>
+          <p className="mt-1 text-[10px] text-slate-500">{clockTime(message.created_date)}{mine && !message.pending ? " · Saved" : ""}</p>
         </div>
         {actions}
       </div>
@@ -109,7 +111,7 @@ export default function ChatMessage({ message, mine, user, compact = false, onHe
           {message.body}
         </p>
         <p className={`mt-1 text-[10px] ${mine ? 'text-white/70' : 'text-slate-400'}`}>
-          {clockTime(message.created_date)}
+          {clockTime(message.created_date)}{mine && !message.pending ? " · Saved" : ""}
         </p>
       </div>
       {actions}

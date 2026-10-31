@@ -1,4 +1,4 @@
-import { base44 } from '@/api/base44Client';
+import { base44, setActiveSpace } from '@/api/base44Client';
 import { syncAuth } from '@/lib/syncAuth';
 const API = '/api';
 async function spaceRequest(path, options = {}) {
@@ -59,20 +59,24 @@ export async function findMySpace(email) {
   const originalRoom = result.spaces.find(
     (space) => space.id === '6adfebfcdb85ad6a8cbb4823'
   );
-  return originalRoom || result.spaces[0] || null;
+  const selected=originalRoom || result.spaces[0] || null;
+  setActiveSpace(selected?.id||null);
+  return selected;
 }
-export async function createSpace({ name }) {
+export async function createSpace({ name, user: _user }) {
   const result = await spaceRequest('/spaces', {
     method: 'POST',
     body: JSON.stringify({ name }),
   });
+  setActiveSpace(result.space.id);
   return result.space;
 }
-export async function joinSpace({ code }) {
+export async function joinSpace({ code, user: _user }) {
   const result = await spaceRequest('/spaces/join', {
     method: 'POST',
     body: JSON.stringify({ code }),
   });
+  setActiveSpace(result.space.id);
   return result.space;
 }
 export async function renameSelf({ space, user, name }) {

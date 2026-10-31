@@ -1,3 +1,4 @@
+import {resolveSpace} from "./spaces.js";
 const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 export const reactions = ['❤️','👍','😂','😮','😢','🎉'];
 export function validPayload(data) {
@@ -11,16 +12,12 @@ export function validPayload(data) {
     canonical(data.cipher, 17, 7000) && (data.clientId === undefined || uuid.test(data.clientId));
 }
 export async function isMember(pool, spaceId, email) {
-  const found = await pool.query("SELECT original_row FROM migration.imported_records WHERE entity_type='Space' AND source_id=$1", [spaceId]);
-  if (!found.rowCount) return false;
-  try {
-    const members = JSON.parse(found.rows[0].original_row.member_emails || '[]');
-    return Array.isArray(members) && members.some(value => String(value).trim().toLowerCase() === email);
-  } catch { return false; }
+ const found=await pool.query('SELECT id,email FROM app.accounts WHERE email=$1',[email]);
+ return found.rowCount>0&&!!await resolveSpace(pool,spaceId,found.rows[0]);
 }
-async function exists(pool, spaceId, messageId) {
+async function exists(pool, spaceId, messageId, sourceIds) {
   const result = await pool.query(`SELECT 1 FROM migration.imported_records WHERE entity_type='Message' AND source_id=$2 AND original_row->>'space_id'=$1
-    UNION ALL SELECT 1 FROM app.messages WHERE space_id=$1 AND 'local-'||id::text=$2 LIMIT 1`, [spaceId, messageId]);
+    UNION ALL SELECT 1 FROM app.messages WHERE space_id::text=ANY($3) AND 'local-'||id::text=$2 LIMIT 1`, [spaceId, messageId, sourceIds]);
   return result.rowCount > 0;
 }
 export async function handleMessages({req, res, url, pool, accountFromToken, reply, bodyJson}) {
@@ -28,12 +25,13 @@ export async function handleMessages({req, res, url, pool, accountFromToken, rep
   if (!match) return false;
   const account = await accountFromToken(req);
   if (!account) { reply(res,401,{error:'Unauthorized'}); return true; }
-  const spaceId = match[1];
-  if (!await isMember(pool, spaceId, account.email)) { reply(res,404,{error:'Not found'}); return true; }
+  const room = await resolveSpace(pool,match[1],account);
+  if (!room) { reply(res,404,{error:'Not found'}); return true; }
+  const spaceId=room.id;
   if (match[2]) {
     let messageId;
     try { messageId = decodeURIComponent(match[2]); } catch { reply(res,400,{error:'Invalid message id'}); return true; }
-    if (!await exists(pool,spaceId,messageId)) { reply(res,404,{error:'Not found'}); return true; }
+    if (!await exists(pool,spaceId,messageId,room.sourceIds)) { reply(res,404,{error:'Not found'}); return true; }
     if (!['PUT','DELETE'].includes(req.method)) { reply(res,405,{error:'Method not allowed'}); return true; }
     if (match[3] === 'reactions') {
       const {emoji} = await bodyJson(req);
@@ -50,12 +48,12 @@ export async function handleMessages({req, res, url, pool, accountFromToken, rep
     const data = await bodyJson(req);
     if (!validPayload(data)) { reply(res,400,{error:'Invalid encrypted payload'}); return true; }
     const inserted = await pool.query(`INSERT INTO app.messages(space_id,account_id,cipher,iv,client_id) VALUES($1,$2,$3,$4,$5)
-      ON CONFLICT (account_id,client_id) WHERE client_id IS NOT NULL DO NOTHING RETURNING id,created_at`,[spaceId,account.id,data.cipher,data.iv,data.clientId || null]);
+      ON CONFLICT (account_id,client_id) WHERE client_id IS NOT NULL DO NOTHING RETURNING id,created_at`,[room.storageId,account.id,data.cipher,data.iv,data.clientId || null]);
     let row = inserted.rows[0];
     if (!row) {
       const existing = await pool.query('SELECT id,created_at,space_id,cipher,iv FROM app.messages WHERE account_id=$1 AND client_id=$2',[account.id,data.clientId]);
       row = existing.rows[0];
-      if (!row || row.space_id !== spaceId || row.cipher !== data.cipher || row.iv !== data.iv) { reply(res,409,{error:'Client id already used'}); return true; }
+      if (!row || !room.sourceIds.includes(String(row.space_id)) || row.cipher !== data.cipher || row.iv !== data.iv) { reply(res,409,{error:'Client id already used'}); return true; }
     }
     reply(res,inserted.rowCount ? 201 : 200,{id:'local-'+row.id,createdDate:row.created_at,clientId:data.clientId}); return true;
   }
@@ -70,12 +68,12 @@ export async function handleMessages({req, res, url, pool, accountFromToken, rep
   }
   const limit=200;
   const [imported, recent, reactionRows, pins] = await Promise.all([
-    pool.query("SELECT source_id,original_row FROM migration.imported_records WHERE entity_type='Message' AND original_row->>'space_id'=$1 ORDER BY source_id LIMIT $2 OFFSET $3",[spaceId,limit+1,importedOffset]),
-    pool.query('SELECT m.id,m.cipher,m.iv,m.created_at,m.client_id,a.email FROM app.messages m JOIN app.accounts a ON a.id=m.account_id WHERE m.space_id=$1 ORDER BY m.id LIMIT $2 OFFSET $3',[spaceId,limit+1,localOffset]),
+    pool.query("SELECT m.source_id,m.original_row,(SELECT u.original_row->>'email' FROM migration.imported_records u WHERE u.entity_type='User' AND (u.source_id=m.original_row->>'author_id' OR u.original_row->>'id'=m.original_row->>'author_id') LIMIT 1) AS author_email FROM migration.imported_records m WHERE m.entity_type='Message' AND m.original_row->>'space_id'=$1 ORDER BY m.source_id LIMIT $2 OFFSET $3",[spaceId,limit+1,importedOffset]),
+    pool.query('SELECT m.id,m.cipher,m.iv,m.created_at,m.client_id,a.email FROM app.messages m JOIN app.accounts a ON a.id=m.account_id WHERE m.space_id::text=ANY($1) ORDER BY m.id LIMIT $2 OFFSET $3',[room.sourceIds,limit+1,localOffset]),
     pool.query('SELECT message_id,emoji,count(*)::int AS count,bool_or(account_id=$2) AS mine FROM app.message_reactions WHERE space_id=$1 GROUP BY message_id,emoji',[spaceId,account.id]),
     pool.query('SELECT message_id FROM app.message_pins WHERE space_id=$1',[spaceId])
   ]);
-  const messages=imported.rows.slice(0,limit).map(({source_id,original_row:r})=>({id:source_id,authorId:r.author_id,cipher:r.cipher,iv:r.iv,createdDate:r.created_date}));
+  const messages=imported.rows.slice(0,limit).map(({source_id,original_row:r,author_email})=>({id:source_id,authorId:r.author_id,authorEmail:author_email,authorName:r.author_name,cipher:r.cipher,iv:r.iv,createdDate:r.created_date}));
   messages.push(...recent.rows.slice(0,limit).map(r=>({id:'local-'+r.id,authorId:r.email,cipher:r.cipher,iv:r.iv,createdDate:r.created_at,clientId:r.client_id})));
   for (const message of messages) {
     message.reactions=reactionRows.rows.filter(r=>r.message_id===message.id).map(({emoji,count,mine})=>({emoji,count,mine}));

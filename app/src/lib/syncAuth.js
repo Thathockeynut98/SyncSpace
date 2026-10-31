@@ -1,9 +1,11 @@
+import {clearSpaceKeys} from './spaceCrypto';
 ﻿const API = "/api";
 const TOKEN_KEY = "syncspace21_session";
 function getToken() {
   return sessionStorage.getItem(TOKEN_KEY);
 }
 function clearToken() {
+  clearSpaceKeys();
   sessionStorage.removeItem(TOKEN_KEY);
 }
 async function request(path, options = {}) {

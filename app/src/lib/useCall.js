@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { QUALITY_MODES, createQualityTuner } from './callQuality';
-import { ICE } from './iceServers';
 import { loadScreenMode, saveScreenMode, silenceLoopUrl, subscribeScreenMode } from './callScreen';
 import { mixShareSound, releaseMix, unmixShareSound } from './callMix';
 import { audioContext, plainCandidate, plainSdp } from './callLink';
@@ -47,10 +46,12 @@ const CAMERA_FPS = 30;
 const BANDWIDTH_POLL_MS = 4000;
 
 export function useCall(room) {
-  const { seat, peers, on, send, connected } = room;
+  const { seat, peers, on, send, connected, iceServersRef, loadIce } = room;
   const partner = peers.find((item) => item.seat !== seat) || null;
   const partnerSeat = partner ? partner.seat : null;
 
+  const [duration,setDuration]=useState(0);
+  const durationAt=useRef(null);
   const [phase, setPhase] = useState('idle'); // idle | ringing | waiting | connecting | live
   const [incoming, setIncoming] = useState(false);
   // Bumped every time the line is rebuilt, so the attempt timers start again.
@@ -417,7 +418,7 @@ export function useCall(room) {
     // Everything on one transport, ready-made routes waiting: fewer ports to open,
     // which is what strict networks and weak phones stumble over.
     const pc = new RTCPeerConnection({
-      iceServers: ICE,
+      iceServers: iceServersRef.current,
       iceCandidatePoolSize: 4,
       bundlePolicy: 'max-bundle',
       rtcpMuxPolicy: 'require',
@@ -536,6 +537,7 @@ export function useCall(room) {
   // microphone is taken up too when the browser has already been told yes, so the
   // line is open the instant either of you reaches for it.
   const prepare = useCallback(async () => {
+    try { await loadIce(); } catch { setNotice("Call server unavailable. Try again when connected."); return; }
     if (wantedRef.current) return;
     warmRef.current = true;
     // Older routes go stale: a warm line is only kept for a few minutes.
@@ -554,7 +556,7 @@ export function useCall(room) {
     } catch (error) {
       // the press asks for it instead
     }
-  }, [acquireMic, dropPeer, ensurePeer]);
+  }, [acquireMic, dropPeer, ensurePeer, loadIce]);
 
   const begin = useCallback(async (options) => {
     // Pressing call on this device is also saying "the call lives here now":
@@ -571,6 +573,7 @@ export function useCall(room) {
       return;
     }
 
+    try { await loadIce(); } catch { setError('Call configuration unavailable. Try again when connected.'); return; }
     wantedRef.current = true;
     answeredRef.current = false;
 
@@ -649,7 +652,7 @@ export function useCall(room) {
       setPhase('idle');
       setError('The call could not start. Try again in a moment.');
     }
-  }, [acquireMic, ensurePeer, flushCandidates, makeOffer, send, sendSignal, attachVideo]);
+  }, [acquireMic, ensurePeer, flushCandidates, makeOffer, send, sendSignal, attachVideo, loadIce]);
 
   // A phone call, a headset swap or a device dozing ends the microphone track the
   // browser handed over, and the call goes silent while the line still looks up.
@@ -1592,12 +1595,19 @@ export function useCall(room) {
     []
   );
 
+  useEffect(()=>{
+    if(phase==='idle'){durationAt.current=null;setDuration(0);return}
+    if(phase==='live'&&!durationAt.current)durationAt.current=Date.now();
+    const tick=setInterval(()=>{if(durationAt.current)setDuration(Math.floor((Date.now()-durationAt.current)/1000))},1000);
+    return()=>clearInterval(tick);
+  },[phase]);
   // Whether the call is running on another device of yours, waiting to be
   // brought here in one tap.
   const mine = peers.find((item) => item.seat === seat) || null;
   const elsewhere = phase === 'idle' && mine?.call === true;
 
   return {
+    duration,
     phase,
     incoming,
     elsewhere,

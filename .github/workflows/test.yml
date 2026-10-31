@@ -51,3 +51,22 @@ jobs:
           python3 -m http.server 3002 --directory ../preview > /tmp/syncspace-preview.log 2>&1 &
           npm run test:browser
           npm run test:calls:browser
+      - name: Build and check the original React application
+        working-directory: app
+        run: |
+          npm ci
+          npm run lint
+          npm run build
+      - name: React integration with PostgreSQL and authenticated WebSockets
+        working-directory: api
+        env:
+          SYNCSPACE_REACT_TEST_DB: host
+        run: |
+          set -euo pipefail
+          export CHROMIUM_PATH="$(node -e 'console.log(require("playwright").chromium.executablePath())')"
+          npm --prefix ../app run dev > /tmp/syncspace-react.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:3003/login > /dev/null; then break; fi
+            sleep 1
+          done
+          npm run test:react
