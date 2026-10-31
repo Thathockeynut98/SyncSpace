@@ -53,6 +53,20 @@ const server = http.createServer(async (req, res) => {
       }).map(({source_id,original_row:row}) => ({id:source_id,name:row.name}));
       return reply(res, 200, { spaces });
     }
+    if (req.method === "GET" && path.startsWith("/spaces/") && path.endsWith("/messages")) {
+      const account = await accountFromToken(req);
+      if (!account) return reply(res, 401, { error: "Unauthorized" });
+      const parts = path.split("/");
+      if (parts.length !== 4 || !/^[a-zA-Z0-9_-]{1,100}$/.test(parts[2])) return reply(res, 404, { error: "Not found" });
+      const spaceId = parts[2];
+      const found = await pool.query("SELECT original_row FROM migration.imported_records WHERE entity_type='Space' AND source_id=$1", [spaceId]);
+      if (!found.rowCount) return reply(res, 404, { error: "Not found" });
+      let members;
+      try { members = JSON.parse(found.rows[0].original_row.member_emails || "[]"); } catch { members = []; }
+      if (!Array.isArray(members) || !members.some(e => normalizeEmail(e) === account.email)) return reply(res, 404, { error: "Not found" });
+      const rows = await pool.query("SELECT source_id,original_row FROM migration.imported_records WHERE entity_type='Message' AND original_row->>'space_id'=$1 ORDER BY original_row->>'created_date' ASC LIMIT 500", [spaceId]);
+      return reply(res, 200, { spaceId, messages: rows.rows.map(({source_id,original_row:r}) => ({id:source_id,authorId:r.author_id,cipher:r.cipher,iv:r.iv,createdDate:r.created_date})), encrypted: true });
+    }
     if (req.method === "GET" && path === "/migration/status") {
       // Keep this local diagnostic endpoint free of private record contents.
       const result = await pool.query("SELECT entity_type, count(*)::int AS records FROM migration.imported_records GROUP BY entity_type ORDER BY entity_type");
