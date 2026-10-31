@@ -18,11 +18,24 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(405);
     return res.end(JSON.stringify({ error: "Method not allowed" }));
   }
-  if (path !== "/health") {
+  if (path !== "/health" && path !== "/migration/status") {
     res.writeHead(404);
     return res.end(JSON.stringify({ error: "Not found" }));
   }
   try {
+    if (path === "/migration/status") {
+      // Counts only; never return private row contents or account identifiers.
+      const result = await pool.query(
+        "SELECT entity_type, count(*)::int AS records FROM migration.imported_records GROUP BY entity_type ORDER BY entity_type"
+      );
+      res.writeHead(200);
+      return res.end(JSON.stringify({
+        status: "ok",
+        totalRecords: result.rows.reduce((sum, row) => sum + row.records, 0),
+        collections: result.rows,
+        note: "Staging records only; app authentication and data APIs are not enabled."
+      }));
+    }
     await pool.query("SELECT 1");
     res.writeHead(200);
     res.end(JSON.stringify({ status: "ok", database: "connected", service: "syncspace-api" }));
