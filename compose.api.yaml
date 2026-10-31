@@ -1,0 +1,19 @@
+services:
+  api:
+    build:
+      context: ./api
+    restart: unless-stopped
+    environment:
+      PGHOST: db
+      PGPORT: "5432"
+      PGDATABASE: syncspace
+      PGUSER: syncspace
+      PGPASSWORD: ${SYNCSPACE_DB_PASSWORD:?Set database password in .env}
+    ports:
+      - "127.0.0.1:4000:4000"
+    networks:
+      - syncspace_internal
+      - default
+    depends_on:
+      db:
+        condition: service_healthy
