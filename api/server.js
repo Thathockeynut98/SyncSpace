@@ -53,7 +53,7 @@ const server = http.createServer(async (req, res) => {
       }).map(({source_id,original_row:row}) => ({id:source_id,name:row.name}));
       return reply(res, 200, { spaces });
     }
-    if (req.method === "GET" && path.startsWith("/spaces/") && path.endsWith("/messages")) {
+    if ((req.method === "GET" || req.method === "POST") && path.startsWith("/spaces/") && path.endsWith("/messages")) {
       const account = await accountFromToken(req);
       if (!account) return reply(res, 401, { error: "Unauthorized" });
       const parts = path.split("/");
@@ -64,8 +64,23 @@ const server = http.createServer(async (req, res) => {
       let members;
       try { members = JSON.parse(found.rows[0].original_row.member_emails || "[]"); } catch { members = []; }
       if (!Array.isArray(members) || !members.some(e => normalizeEmail(e) === account.email)) return reply(res, 404, { error: "Not found" });
-      const rows = await pool.query("SELECT source_id,original_row FROM migration.imported_records WHERE entity_type='Message' AND original_row->>'space_id'=$1 ORDER BY original_row->>'created_date' ASC LIMIT 500", [spaceId]);
-      return reply(res, 200, { spaceId, messages: rows.rows.map(({source_id,original_row:r}) => ({id:source_id,authorId:r.author_id,cipher:r.cipher,iv:r.iv,createdDate:r.created_date})), encrypted: true });
+      if (req.method === "POST") {
+        const data = await bodyJson(req);
+        const valid = (v, min, max) => typeof v === "string" && v.length >= min && v.length <= max && /^[A-Za-z0-9+/=]+$/.test(v);
+        if (!valid(data.iv, 16, 32) || !valid(data.cipher, 20, 7000)) return reply(res, 400, { error: "Invalid encrypted payload" });
+        const inserted = await pool.query(
+          "INSERT INTO app.messages(space_id,account_id,cipher,iv) VALUES($1,$2,$3,$4) RETURNING id,created_at",
+          [spaceId,account.id,data.cipher,data.iv]
+        );
+        return reply(res, 201, { id: "local-"+inserted.rows[0].id, createdDate: inserted.rows[0].created_at });
+      }
+      const [imported, recent] = await Promise.all([
+        pool.query("SELECT source_id,original_row FROM migration.imported_records WHERE entity_type='Message' AND original_row->>'space_id'=$1 ORDER BY original_row->>'created_date' ASC LIMIT 500", [spaceId]),
+        pool.query("SELECT m.id,m.cipher,m.iv,m.created_at,a.email FROM app.messages m JOIN app.accounts a ON a.id=m.account_id WHERE m.space_id=$1 ORDER BY m.created_at ASC,m.id ASC LIMIT 500", [spaceId])
+      ]);
+      const messages = imported.rows.map(({source_id,original_row:r}) => ({id:source_id,authorId:r.author_id,cipher:r.cipher,iv:r.iv,createdDate:r.created_date}));
+      messages.push(...recent.rows.map(row => ({id:"local-"+row.id,authorId:row.email,cipher:row.cipher,iv:row.iv,createdDate:row.created_at})));
+      return reply(res, 200, { spaceId, messages, encrypted: true });
     }
     if (req.method === "GET" && path === "/migration/status") {
       // Keep this local diagnostic endpoint free of private record contents.
