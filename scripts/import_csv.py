@@ -18,13 +18,16 @@ def main():
     directory = Path(args.directory)
     if not directory.is_dir():
         p.error("Export directory not found")
-    dsn = os.environ.get("DATABASE_URL")
-    if not dsn:
-        p.error("DATABASE_URL environment variable is required")
-    files = sorted(directory.glob("*.csv"))
+    # libpq reads PGHOST, PGPORT, PGDATABASE, PGUSER, PGPASSWORD from environment.
+    # This avoids interpreting special password characters as URL delimiters.
+    allowed = {"BrushTip", "CanvasDoc", "CodexEntry", "Goodnight", "Heart", "Media", "Memory", "Message", "Mood", "Note", "Photo", "ReadingDoc", "SleepTrack", "Space", "SyncSpace-users", "Video", "VoiceNote"}
+    files = sorted(path for path in directory.glob("*.csv") if path.name.split("_export")[0].split(" (")[0].removesuffix(".csv") in allowed)
+    skipped = [path.name for path in directory.glob("*.csv") if path not in files]
+    for name in skipped:
+        print(f"SKIPPING non-SyncSpace CSV: {name}")
     if not files:
         p.error("No CSV files found")
-    with psycopg.connect(dsn) as conn:
+    with psycopg.connect("") as conn:
         for path in files:
             name = path.name.split("_export")[0].split(" (")[0]
             if name.lower().startswith("syncspace-users"):
