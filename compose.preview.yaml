@@ -6,6 +6,7 @@ services:
     volumes:
       - ./preview/index.html:/usr/share/nginx/html/index.html:ro
       - ./preview/vault.js:/usr/share/nginx/html/vault.js:ro
+      - ./preview/inventory.js:/usr/share/nginx/html/inventory.js:ro
       - ./preview/polish.css:/usr/share/nginx/html/polish.css:ro
       - ./preview/home-layout.css:/usr/share/nginx/html/home-layout.css:ro
       - ./preview/nginx.conf:/etc/nginx/conf.d/default.conf:ro
