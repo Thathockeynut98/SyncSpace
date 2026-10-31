@@ -70,3 +70,9 @@ app/                     # Frontend source (to be added after review)
 ## Project status
 
 **Phase 2: infrastructure foundation.** This repository documents the migration; production deployment is not yet ready.
+
+## Migration verification checkpoint (2026-10-30)
+
+The initial CSV staging import completed successfully on the local Windows Docker deployment. PostgreSQL contains **948 staged records** across 14 nonempty entity types (17 CSV exports processed, including three empty collections). This confirms staging only; the original application is not yet connected to PostgreSQL. Media files, encrypted payload usability, authentication, and Base44 independence remain unverified.
+
+Before further migrations, create a **private** PostgreSQL backup outside the Git checkout and compare CSV source row counts with staged record counts. Never commit backup files or private exports.
