@@ -113,6 +113,19 @@ const server = http.createServer(async (req, res) => {
       const items=await pool.query("SELECT id,kind,iv,cipher,created_at FROM app.vault_items WHERE space_id=$1 ORDER BY created_at ASC,id ASC LIMIT 200",[spaceId]);
       return reply(res,200,{items:items.rows.map(x=>({id:x.id,kind:x.kind,iv:x.iv,cipher:x.cipher,createdDate:x.created_at}))});
     }
+    if (req.method==="GET" && /^\/spaces\/[A-Za-z0-9_-]{1,100}\/overview$/.test(path)) {
+      const account=await accountFromToken(req);
+      if(!account)return reply(res,401,{error:"Unauthorized"});
+      const spaceId=path.split("/")[2];
+      const found=await pool.query("SELECT original_row FROM migration.imported_records WHERE entity_type='Space' AND source_id=$1",[spaceId]);
+      if(!found.rowCount)return reply(res,404,{error:"Not found"});
+      let members=[];try{members=JSON.parse(found.rows[0].original_row.member_emails||"[]")}catch{}
+      if(!Array.isArray(members)||!members.some(e=>normalizeEmail(e)===account.email))return reply(res,404,{error:"Not found"});
+      const counts=await pool.query("SELECT entity_type,count(*)::int AS total FROM migration.imported_records WHERE entity_type IN ('Message','Photo','Memory','Media','CanvasDoc','ReadingDoc','VoiceNote','Note','Mood','SleepTrack','Goodnight','Heart','CodexEntry') AND original_row->>'space_id'=$1 GROUP BY entity_type",[spaceId]);
+      const fresh=await pool.query("SELECT count(*)::int AS total FROM app.messages WHERE space_id=$1",[spaceId]);
+      const vault=await pool.query("SELECT count(*)::int AS total FROM app.vault_items WHERE space_id=$1",[spaceId]);
+      return reply(res,200,{spaceId,name:found.rows[0].original_row.name||"Our Little Space",counts:Object.fromEntries(counts.rows.map(x=>[x.entity_type,x.total])),newMessages:fresh.rows[0].total,encryptedVaultItems:vault.rows[0].total});
+    }
     if (req.method === "GET" && path === "/migration/status") {
       // Keep this local diagnostic endpoint free of private record contents.
       const result = await pool.query("SELECT entity_type, count(*)::int AS records FROM migration.imported_records GROUP BY entity_type ORDER BY entity_type");
