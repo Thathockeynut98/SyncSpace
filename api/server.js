@@ -41,6 +41,18 @@ const server = http.createServer(async (req, res) => {
       if (auth.startsWith("Bearer ")) await pool.query("DELETE FROM app.sessions WHERE token_hash=$1", [tokenHash(auth.slice(7))]);
       return reply(res, 200, { status: "logged_out" });
     }
+    if (req.method === "GET" && path === "/spaces") {
+      const account = await accountFromToken(req);
+      if (!account) return reply(res, 401, { error: "Unauthorized" });
+      const rows = await pool.query("SELECT source_id,original_row FROM migration.imported_records WHERE entity_type='Space'");
+      const spaces = rows.rows.filter(({original_row: row}) => {
+        try {
+          const members = JSON.parse(row.member_emails || "[]");
+          return Array.isArray(members) && members.some(e => normalizeEmail(e) === account.email);
+        } catch { return false; }
+      }).map(({source_id,original_row:row}) => ({id:source_id,name:row.name}));
+      return reply(res, 200, { spaces });
+    }
     if (req.method === "GET" && path === "/migration/status") {
       // Keep this local diagnostic endpoint free of private record contents.
       const result = await pool.query("SELECT entity_type, count(*)::int AS records FROM migration.imported_records GROUP BY entity_type ORDER BY entity_type");
