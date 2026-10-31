@@ -5,6 +5,7 @@ services:
       - "127.0.0.1:3002:80"
     volumes:
       - ./preview/index.html:/usr/share/nginx/html/index.html:ro
+      - ./preview/vault.js:/usr/share/nginx/html/vault.js:ro
       - ./preview/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - api
