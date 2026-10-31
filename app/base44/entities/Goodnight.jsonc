@@ -1,0 +1,31 @@
+{
+  "name": "Goodnight",
+  "type": "object",
+  "properties": {
+    "space_id": {
+      "type": "string",
+      "description": "The shared space this goodnight was left in"
+    },
+    "cipher": {
+      "type": "string",
+      "description": "The goodnight message scrambled with this space's key before it was saved"
+    },
+    "iv": {
+      "type": "string",
+      "description": "Random starting value used to scramble this one message"
+    },
+    "author_name": {
+      "type": "string",
+      "description": "Display name of whoever said goodnight"
+    },
+    "author_id": {
+      "type": "string",
+      "description": "User id of whoever said goodnight"
+    }
+  },
+  "required": [
+    "space_id",
+    "cipher",
+    "iv"
+  ]
+}

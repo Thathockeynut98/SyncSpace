@@ -1,0 +1,65 @@
+{
+  "name": "Media",
+  "type": "object",
+  "properties": {
+    "space_id": {
+      "type": "string",
+      "description": "The shared space this keepsake belongs to"
+    },
+    "title": {
+      "type": "string",
+      "description": "What the two of you call this thing"
+    },
+    "kind": {
+      "type": "string",
+      "description": "What sort of media it is",
+      "enum": [
+        "audio",
+        "video",
+        "image",
+        "link",
+        "file"
+      ],
+      "default": "file"
+    },
+    "source": {
+      "type": "string",
+      "description": "Whether it was uploaded from a device or pasted as a link",
+      "enum": [
+        "upload",
+        "link"
+      ],
+      "default": "upload"
+    },
+    "url": {
+      "type": "string",
+      "description": "The pasted link, when this is not an upload"
+    },
+    "file_uri": {
+      "type": "string",
+      "description": "Private storage location of the uploaded file"
+    },
+    "duration_seconds": {
+      "type": "number",
+      "description": "Length of the audio or video in seconds"
+    },
+    "note": {
+      "type": "string",
+      "description": "A few words about why it is in the library"
+    },
+    "added_by_name": {
+      "type": "string",
+      "description": "Display name of whoever added it"
+    },
+    "added_by_id": {
+      "type": "string",
+      "description": "User id of whoever added it"
+    }
+  },
+  "required": [
+    "space_id",
+    "title",
+    "kind",
+    "source"
+  ]
+}

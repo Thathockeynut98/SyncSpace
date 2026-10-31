@@ -1,0 +1,84 @@
+{
+  "name": "ReadingDoc",
+  "type": "object",
+  "properties": {
+    "space_id": {
+      "type": "string",
+      "description": "The shared space this book belongs to"
+    },
+    "title": {
+      "type": "string",
+      "description": "What the two of you call this read"
+    },
+    "source": {
+      "type": "string",
+      "description": "Whether this was pasted in, uploaded, or read from a link",
+      "enum": [
+        "upload",
+        "link"
+      ],
+      "default": "upload"
+    },
+    "url": {
+      "type": "string",
+      "description": "The web page this was read from, when it came from a link"
+    },
+    "file_uri": {
+      "type": "string",
+      "description": "Private storage location of the uploaded text"
+    },
+    "body": {
+      "type": "string",
+      "description": "The text itself, kept for typical chapters so it opens instantly"
+    },
+    "char_count": {
+      "type": "number",
+      "description": "Roughly how long the text is, in characters"
+    },
+    "last_page": {
+      "type": "number",
+      "description": "The page the two of you last left off on"
+    },
+    "page_count": {
+      "type": "number",
+      "description": "How many pages this read came out to"
+    },
+    "bookmarks": {
+      "type": "array",
+      "description": "The chapters and spots the two of you saved to come back to",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Stable id of this bookmark"
+          },
+          "label": {
+            "type": "string",
+            "description": "What the two of you called this spot"
+          },
+          "page": {
+            "type": "number",
+            "description": "Which page this bookmark sits on"
+          },
+          "author_name": {
+            "type": "string",
+            "description": "Display name of whoever saved it"
+          }
+        }
+      }
+    },
+    "added_by_name": {
+      "type": "string",
+      "description": "Display name of whoever added it"
+    },
+    "added_by_id": {
+      "type": "string",
+      "description": "User id of whoever added it"
+    }
+  },
+  "required": [
+    "space_id",
+    "title"
+  ]
+}

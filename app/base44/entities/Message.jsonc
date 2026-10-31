@@ -1,0 +1,47 @@
+{
+  "name": "Message",
+  "type": "object",
+  "properties": {
+    "space_id": {
+      "type": "string",
+      "description": "The shared space this message belongs to"
+    },
+    "author_id": {
+      "type": "string",
+      "description": "User id of whoever sent it"
+    },
+    "author_name": {
+      "type": "string",
+      "description": "Display name of whoever sent it"
+    },
+    "cipher": {
+      "type": "string",
+      "description": "The message text scrambled with this space's key before it was saved"
+    },
+    "iv": {
+      "type": "string",
+      "description": "Random starting value used to scramble this one message"
+    },
+    "pinned": {
+      "type": "boolean",
+      "description": "Whether the two of you pinned this message to keep it close",
+      "default": false
+    },
+    "pinned_by_name": {
+      "type": "string",
+      "description": "Display name of whoever pinned it"
+    },
+    "hearts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "User ids of everyone who hearted this message"
+    }
+  },
+  "required": [
+    "space_id",
+    "cipher",
+    "iv"
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "name": "SyncSpace — Our Space",
+  "short_name": "SyncSpace",
+  "description": "A private space for two. Watch together, doodle on the same page, drift off to the same sounds.",
+  "lang": "en",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#060912",
+  "theme_color": "#060912",
+  "categories": ["social", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icon-1024.jpg",
+      "sizes": "1024x1024",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-1024.jpg",
+      "sizes": "1024x1024",
+      "type": "image/jpeg",
+      "purpose": "maskable"
+    }
+  ]
+}

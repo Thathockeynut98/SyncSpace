@@ -1,0 +1,30 @@
+{
+  "name": "BrushTip",
+  "type": "object",
+  "properties": {
+    "space_id": {
+      "type": "string",
+      "description": "The shared space this brush texture belongs to"
+    },
+    "name": {
+      "type": "string",
+      "description": "What the two of you call this texture"
+    },
+    "file_uri": {
+      "type": "string",
+      "description": "Private storage location of the uploaded texture image"
+    },
+    "added_by_name": {
+      "type": "string",
+      "description": "Display name of whoever added it"
+    },
+    "added_by_id": {
+      "type": "string",
+      "description": "User id of whoever added it"
+    }
+  },
+  "required": [
+    "space_id",
+    "file_uri"
+  ]
+}

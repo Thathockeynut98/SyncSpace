@@ -1,0 +1,38 @@
+{
+  "name": "Photo",
+  "type": "object",
+  "properties": {
+    "space_id": {
+      "type": "string",
+      "description": "The shared space this photo belongs to"
+    },
+    "caption": {
+      "type": "string",
+      "description": "Plain caption, kept only for photos added before encryption"
+    },
+    "cipher": {
+      "type": "string",
+      "description": "The caption scrambled with this space's key before it was saved"
+    },
+    "iv": {
+      "type": "string",
+      "description": "Random starting value used to scramble this one caption"
+    },
+    "file_uri": {
+      "type": "string",
+      "description": "Private storage location of the uploaded photo"
+    },
+    "added_by_name": {
+      "type": "string",
+      "description": "Display name of whoever uploaded it"
+    },
+    "added_by_id": {
+      "type": "string",
+      "description": "User id of whoever uploaded it"
+    }
+  },
+  "required": [
+    "space_id",
+    "file_uri"
+  ]
+}

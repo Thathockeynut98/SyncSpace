@@ -1,0 +1,32 @@
+{
+  "name": "Space",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The name the two of you gave your shared space"
+    },
+    "invite_code": {
+      "type": "string",
+      "description": "Short code the other person types to join this space"
+    },
+    "member_emails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Emails of the two people who belong to this space"
+    },
+    "member_names": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Short display names of the members"
+    }
+  },
+  "required": [
+    "invite_code",
+    "member_emails"
+  ]
+}
