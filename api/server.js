@@ -82,6 +82,37 @@ const server = http.createServer(async (req, res) => {
       messages.push(...recent.rows.map(row => ({id:"local-"+row.id,authorId:row.email,cipher:row.cipher,iv:row.iv,createdDate:row.created_at})));
       return reply(res, 200, { spaceId, messages, encrypted: true });
     }
+    if (/^\/spaces\/[A-Za-z0-9_-]{1,100}\/vault(?:\/items)?$/.test(path) && ["GET","POST"].includes(req.method)) {
+      const account = await accountFromToken(req);
+      if (!account) return reply(res,401,{error:"Unauthorized"});
+      const spaceId = path.split("/")[2];
+      const found = await pool.query("SELECT original_row FROM migration.imported_records WHERE entity_type='Space' AND source_id=$1",[spaceId]);
+      if (!found.rowCount) return reply(res,404,{error:"Not found"});
+      let members=[];
+      try { members=JSON.parse(found.rows[0].original_row.member_emails||"[]"); } catch {}
+      if (!Array.isArray(members)||!members.some(e=>normalizeEmail(e)===account.email)) return reply(res,404,{error:"Not found"});
+      const isItems=path.endsWith("/items");
+      const validB64=(s,max)=>typeof s==="string"&&s.length>10&&s.length<=max&&/^[A-Za-z0-9+/]+={0,2}$/.test(s);
+      if (!isItems) {
+        if (req.method==="POST") {
+          const data=await bodyJson(req);
+          if (data.version!==1||!validB64(data.kdfSalt,100)||!validB64(data.wrapIv,100)||!validB64(data.wrappedKey,200)) return reply(res,400,{error:"Invalid vault envelope"});
+          const created=await pool.query("INSERT INTO app.space_vaults(space_id,kdf_salt,wrap_iv,wrapped_key) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING RETURNING space_id",[spaceId,data.kdfSalt,data.wrapIv,data.wrappedKey]);
+          if (!created.rowCount) return reply(res,409,{error:"Vault already initialized"});
+          return reply(res,201,{status:"created"});
+        }
+        const data=await pool.query("SELECT version,kdf_salt,wrap_iv,wrapped_key FROM app.space_vaults WHERE space_id=$1",[spaceId]);
+        return reply(res,200,data.rowCount?{initialized:true,version:data.rows[0].version,kdfSalt:data.rows[0].kdf_salt,wrapIv:data.rows[0].wrap_iv,wrappedKey:data.rows[0].wrapped_key}:{initialized:false});
+      }
+      if (req.method==="POST") {
+        const data=await bodyJson(req);
+        if (!["note","memory","file","photo","audio","canvas","other"].includes(data.kind)||!validB64(data.iv,100)||!validB64(data.cipher,8000)) return reply(res,400,{error:"Invalid encrypted item"});
+        const result=await pool.query("INSERT INTO app.vault_items(space_id,account_id,kind,iv,cipher) VALUES($1,$2,$3,$4,$5) RETURNING id,created_at",[spaceId,account.id,data.kind,data.iv,data.cipher]);
+        return reply(res,201,{id:result.rows[0].id,createdDate:result.rows[0].created_at});
+      }
+      const items=await pool.query("SELECT id,kind,iv,cipher,created_at FROM app.vault_items WHERE space_id=$1 ORDER BY created_at ASC,id ASC LIMIT 200",[spaceId]);
+      return reply(res,200,{items:items.rows.map(x=>({id:x.id,kind:x.kind,iv:x.iv,cipher:x.cipher,createdDate:x.created_at}))});
+    }
     if (req.method === "GET" && path === "/migration/status") {
       // Keep this local diagnostic endpoint free of private record contents.
       const result = await pool.query("SELECT entity_type, count(*)::int AS records FROM migration.imported_records GROUP BY entity_type ORDER BY entity_type");
