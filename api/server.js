@@ -126,6 +126,19 @@ const server = http.createServer(async (req, res) => {
       const vault=await pool.query("SELECT count(*)::int AS total FROM app.vault_items WHERE space_id=$1",[spaceId]);
       return reply(res,200,{spaceId,name:found.rows[0].original_row.name||"Our Little Space",counts:Object.fromEntries(counts.rows.map(x=>[x.entity_type,x.total])),newMessages:fresh.rows[0].total,encryptedVaultItems:vault.rows[0].total});
     }
+    // Safe migration inventory: metadata only, never original_row or ciphertext.
+    if (req.method==="GET" && /^\/spaces\/[A-Za-z0-9_-]{1,100}\/inventory$/.test(path)) {
+      const account=await accountFromToken(req);
+      if(!account)return reply(res,401,{error:"Unauthorized"});
+      const spaceId=path.split("/")[2];
+      const space=await pool.query("SELECT original_row FROM migration.imported_records WHERE entity_type='Space' AND source_id=$1",[spaceId]);
+      if(!space.rowCount)return reply(res,404,{error:"Not found"});
+      let members=[];
+      try{members=JSON.parse(space.rows[0].original_row.member_emails||"[]")}catch{}
+      if(!Array.isArray(members)||!members.some(e=>normalizeEmail(e)===account.email))return reply(res,404,{error:"Not found"});
+      const data=await pool.query("SELECT entity_type, count(*)::int AS total, count(*) FILTER (WHERE original_row->>'space_id'=$1)::int AS linked FROM migration.imported_records WHERE entity_type NOT IN ('User','Space') GROUP BY entity_type ORDER BY entity_type",[spaceId]);
+      return reply(res,200,{spaceId,collections:data.rows.map(x=>({type:x.entity_type,imported:x.total,linked:x.linked,unlinked:x.total-x.linked})),note:"Metadata inventory only. Imported media records do not confirm that their original binary files are present."});
+    }
     if (req.method === "GET" && path === "/migration/status") {
       // Keep this local diagnostic endpoint free of private record contents.
       const result = await pool.query("SELECT entity_type, count(*)::int AS records FROM migration.imported_records GROUP BY entity_type ORDER BY entity_type");
