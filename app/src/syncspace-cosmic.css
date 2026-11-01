@@ -1,0 +1,133 @@
+:root {
+  --cosmic-bg: #090b16;
+  --cosmic-panel: rgba(20,23,40,.88);
+  --cosmic-panel-2: rgba(28,32,53,.92);
+  --cosmic-line: rgba(255,255,255,.09);
+  --cosmic-text: #f6f5ff;
+  --cosmic-muted: #a09eb6;
+  --cosmic-purple: #9875ff;
+  --cosmic-cyan: #60dfed;
+  --cosmic-pink: #ed8bc8;
+}
+body {
+  background: #090b16;
+  color: var(--cosmic-text);
+}
+.cosmic-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 80% 12%, #5c369c70, transparent 40%),
+    radial-gradient(ellipse at 10% 86%, #0d78916b, transparent 46%),
+    #070914;
+}
+.cosmic-ambient::before {
+  content: "";
+  position: absolute;
+  inset: -35%;
+  background:
+    conic-gradient(
+      from 40deg at 50% 50%,
+      transparent,
+      #6f4bd220,
+      transparent,
+      #32b6ca22,
+      transparent
+    );
+  filter: blur(65px);
+  animation: cosmic-drift 22s ease-in-out infinite alternate;
+}
+.cosmic-ambient::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(#ffffff60 .7px, transparent .8px);
+  background-size: 34px 34px;
+  opacity: .26;
+  animation: cosmic-stars 35s linear infinite;
+}
+@keyframes cosmic-drift {
+  to {
+    transform: translate(10%, -8%) rotate(24deg);
+  }
+}
+@keyframes cosmic-stars {
+  to {
+    background-position: 140px -200px;
+  }
+}
+.cosmic-shell {
+  min-height: 100vh;
+  position: relative;
+  isolation: isolate;
+}
+.cosmic-shell button {
+  transition:
+    transform .2s ease,
+    background .2s ease,
+    border-color .2s ease;
+}
+.cosmic-shell button:hover {
+  transform: translateY(-2px);
+}
+.cosmic-glass {
+  background: var(--cosmic-panel);
+  border: 1px solid var(--cosmic-line);
+  border-radius: 20px;
+  backdrop-filter: blur(24px);
+  box-shadow: 0 15px 40px #03020b40;
+}
+.cosmic-card {
+  background: var(--cosmic-panel);
+  border: 1px solid var(--cosmic-line);
+  border-radius: 21px;
+  padding: 21px;
+  transition:
+    transform .25s,
+    border-color .25s,
+    box-shadow .25s;
+}
+.cosmic-card:hover {
+  transform: translateY(-4px);
+  border-color: #ae91ff6b;
+  box-shadow: 0 22px 50px #05041465;
+}
+.cosmic-gradient-text {
+  background: linear-gradient(110deg, #c7a5ff, #60dfed);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+.cosmic-button {
+  background: linear-gradient(110deg, #a77cff, #7568ef);
+  color: white;
+  border: 0;
+  border-radius: 13px;
+  padding: 12px 19px;
+  font-weight: 700;
+}
+.cosmic-page-enter {
+  animation: cosmic-arrive .46s cubic-bezier(.2,.8,.2,1);
+}
+@keyframes cosmic-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(.99);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cosmic-shell *,
+  .cosmic-shell *::before,
+  .cosmic-shell *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
