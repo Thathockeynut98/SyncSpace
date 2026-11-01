@@ -1,80 +1,125 @@
 # SyncSpace 💜
 
-A private shared space for two people. SyncSpace is being migrated from Base44 to a portable, self-hosted application.
+**A private little universe for two people.**
 
-> **Migration in progress.** The current React/Vite frontend still depends on Base44 services. Do not treat this repository as a fully independent or production-ready deployment.
+SyncSpace is a self-hostable shared-space application for staying close, talking, creating, and spending time together. It combines encrypted messaging, a voice/video Call Studio, and cozy collaborative spaces in a dark-purple, animated interface.
 
-## Goals
+> **Status: active development.** SyncSpace's React frontend has been decoupled from the hosted Base44 SDK, and the local Node/PostgreSQL backend is under active development. The frontend builds and automated integration checks pass; this is **not yet a production-security or real-world call-reliability certification**.
 
-- Preserve the existing SyncSpace interface and shared-space experience.
-- Migrate accounts, messages, memories, and other records without losing encrypted data.
-- Run locally on Windows with Docker Desktop, with a path to Linux hosting.
-- Repair microphone, screen, and computer-audio sharing.
-- Keep administration private while allowing both users to access the site securely.
+## ✨ What you can do
 
-## Planned stack
+| Space | Experience |
+| --- | --- |
+| **Home** | A shared dashboard and entry point to your little universe. |
+| **Messages** | Private conversations with timestamps, reactions, pins, search, and reconnect/retry behavior. |
+| **Call Studio** | Voice and video calling, camera/microphone controls, device selection, and screen sharing. |
+| **Call Health** | In-call diagnostics and connection-quality visibility, introduced with Call Quality 2.2. |
+| **Canvas** | A place for shared creativity and drawing. |
+| **Games** | Play together within your shared space. |
+| **Watch Together** | A shared viewing area; synchronization and media support continue to evolve. |
+| **Read Together** | A cozy place for shared reading. |
+| **Sleep Zone** | A quieter space for winding down. |
+| **Media Library** | A home for shared media; private-file storage and migration are still in progress. |
+| **Vesperan** | A dedicated corner for the Vesperan language project. |
 
-React + Vite (frontend), Node.js (API), PostgreSQL (database), Socket.IO (real-time signaling), WebRTC (calls), Docker Compose (deployment).
+Some shared-space sections are works in progress or partially restored from the original application. Their presence in the interface does not imply every legacy workflow is complete.
 
-## Current development workflow
+## 📞 Call Studio & Call Quality 2.2
 
-The original React app is now under `app/`; `api/` is the maintained local backend.
-The corrected Windows source is retained under `integration/windows-api/` for
-reference. Development progress and validation are tracked in
-[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+The calling experience is built around **WebRTC** with authenticated, room-scoped signaling through the local API.
 
-Use Node 22.12+ and PostgreSQL 16. Install with `npm ci` in both `api/` and `app/`.
-Apply the additive database migrations in filename order to an isolated development
-database, configure the API's PG variables, then run `npm start` from `api/` and
-`npm run dev` from `app/`. Vite serves port 3003 and proxies API/WebSocket requests
-to port 4000. The default frontend Compose build still needs packaging work;
-use this Node development workflow for the original React interface.
+- Voice and video call controls, incoming-call handling, and elapsed call time.
+- Microphone, camera, and device selection controls.
+- Screen sharing and in-call quality/health information.
+- Connection-state handling, diagnostics, and ongoing audio-isolation improvements.
+- STUN/TURN configuration through the backend for supported network environments.
 
-Messaging, local session authentication, room mapping, persistent reactions/pins,
-and Call Studio signaling use the local backend. Remaining migration work includes
-private-file storage, full collection editing, real-device/TURN call validation,
-and diagnosis of the four private legacy messages. No cloud check is a validation
-of the owner's Windows data or a Windows deployment.
+**Real-world limitations:** reliable two-device media transport, TURN-backed recovery, mobile browsers, and system/tab-audio behavior still need thorough cross-device testing. Browser capture support varies. WebRTC protects media transport with DTLS-SRTP; SyncSpace does **not** claim independently audited application-level end-to-end encryption for calls.
 
-Never replace restored mappings, invite-derived encryption information, imported
-messages or database volumes. Back up real data privately before applying changes
-to any existing deployment; Windows deployment requires explicit approval.
+## 🔐 Privacy by design
 
-## Migration roadmap
+Privacy is a core design goal, not a claim that every feature has completed a security audit.
 
-- [x] Export original application source
-- [x] Export 14 entity collections and user records (stored privately, **not in Git**)
-- [x] Test initial local frontend container
-- [x] Prepare PostgreSQL Compose service
-- [ ] Review and sanitize exported source code before publishing
-- [ ] Design database schema and import tooling
-- [ ] Implement independent authentication and authorization
-- [ ] Replace Base44 SDK calls and room signaling
-- [ ] Validate encrypted-content compatibility and media downloads
-- [ ] Fix and test WebRTC audio and screen sharing
-- [ ] Configure HTTPS, free hostname, and secure remote access
-- [ ] Perform backup/restore and end-to-end migration tests
+- Browser-side decryption supports the existing **PBKDF2-SHA256 / AES-256-GCM** message envelope.
+- A ciphertext-only persistent message outbox supports retries without storing plaintext in that outbox.
+- Authenticated API/WebSocket access checks shared-space membership.
+- Legacy encrypted records and room mappings are preserved during migration rather than silently rewritten.
+- Private exports, credentials, database dumps, and media must **never** be committed to Git.
 
-## Security and privacy
+Encrypted-message compatibility has automated tests. Full private-file encryption, key lifecycle review, secure remote deployment, and comprehensive security testing remain release work.
 
-Never commit `.env`, database dumps, CSV exports, user lists, private media, tokens, TURN credentials, or other secrets. Any credentials embedded in the exported application should be rotated before deployment. Keep the existing Base44 project intact until data and functionality are verified.
+## 🛠 Technology
 
-## Repository structure
+| Layer | Technology |
+| --- | --- |
+| Interface | React, Vite, Tailwind CSS, Framer Motion |
+| API | Node.js |
+| Data | PostgreSQL |
+| Live communication | Authenticated WebSockets and WebRTC |
+| Local infrastructure | Docker / Docker Compose |
+| Validation | Node tests, browser integration tests, GitHub Actions |
 
-```text
-compose.yaml             # Local frontend container
-compose.database.yaml    # Optional internal PostgreSQL service
-.env.example             # Variable names only; no secrets
-.gitignore               # Excludes private data and generated files
-app/                     # Frontend source (to be added after review)
+The project is designed to be independently hosted rather than dependent on Base44's hosted runtime. Some source files retain compatibility-oriented names while routing to local services.
+
+## 🚀 Local development
+
+**Prerequisites:** Node.js 22.12+, npm, and PostgreSQL 16 (or an isolated Docker PostgreSQL instance).
+
+1. Clone the repository and configure a **development-only** database and API environment.
+2. Apply the SQL migrations in `database/` in filename order, using `psql -v ON_ERROR_STOP=1`.
+3. Install and start the API:
+   ```bash
+   cd api
+   npm ci
+   npm start
+   ```
+4. In another terminal, install and start the frontend:
+   ```bash
+   cd app
+   npm ci
+   npm run dev
+   ```
+
+The development frontend is configured for port **3003**, with the local API on **4000**. Review environment variables and proxy/origin settings before using a different hostname or port. The root `compose.yaml` currently describes a frontend container only; it is **not** a complete, production-ready deployment.
+
+### Checks
+
+```bash
+cd app && npm run build
+cd ../api && npm test
 ```
 
-## Project status
+Additional API/browser and PostgreSQL integration tests are described in [development notes](docs/DEVELOPMENT.md). GitHub Actions verifies automated workflows against isolated test resources; passing CI does not test your personal Windows database or a real two-person internet call.
 
-**Phase 2: infrastructure foundation.** This repository documents the migration; production deployment is not yet ready.
+## 🗂 Repository layout
 
-## Migration verification checkpoint (2026-10-30)
+```text
+app/                  React application and Call Studio
+api/                  Local API, WebSocket signaling, and tests
+database/             SQL migrations
+docs/                 Development notes and integration details
+integration/          Historical migration/reference material
+compose.yaml          Frontend container configuration
+```
 
-The initial CSV staging import completed successfully on the local Windows Docker deployment. PostgreSQL contains **948 staged records** across 14 nonempty entity types (17 CSV exports processed, including three empty collections). This confirms staging only; the original application is not yet connected to PostgreSQL. Media files, encrypted payload usability, authentication, and Base44 independence remain unverified.
+## 🧭 Roadmap
 
-Before further migrations, create a **private** PostgreSQL backup outside the Git checkout and compare CSV source row counts with staged record counts. Never commit backup files or private exports.
+- [x] Restore the original React shared-space interface
+- [x] Replace hosted Base44 SDK integration with local compatibility services
+- [x] Implement persistent encrypted messaging flows, retries, and shared pins/reactions
+- [x] Integrate Call Studio signaling and browser call controls
+- [x] Add Call Quality 2.2 health monitoring and diagnostics
+- [x] Restore passing Linux frontend builds in GitHub Actions
+- [ ] Complete real-device voice/video, TURN, reconnection, and screen-sharing validation
+- [ ] Finish private media storage, encrypted uploads, and legacy feature restoration
+- [ ] Review dependency advisories, key management, and deployment hardening
+- [ ] Verify backups/restores and secure HTTPS remote access
+- [ ] Complete production-readiness review
+
+## 💜 The idea behind SyncSpace
+
+Not another public social network. **One shared place that feels like yours**—for conversations, quiet moments, creativity, and time together.
+
+---
+
+**Development note:** Never run migrations or replace containers against an existing restored deployment without an independent backup and explicit approval. Do not commit `.env` files, tokens, TURN secrets, private exports, user data, or database volumes.
