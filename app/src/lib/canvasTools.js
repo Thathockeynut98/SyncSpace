@@ -1,0 +1,31 @@
+import {
+  Droplets,
+  Eraser,
+  Feather,
+  Highlighter,
+  PaintBucket,
+  PaintRoller,
+  Pencil,
+  PenLine,
+  PenTool,
+  Rainbow,
+  Sparkles,
+  SprayCan,
+  Stamp,
+} from 'lucide-react';
+
+export const TOOLS = [
+  { id: 'pen', label: 'Pen', icon: PenLine, size: 4 },
+  { id: 'pencil', label: 'Pencil', icon: Pencil, size: 3 },
+  { id: 'marker', label: 'Marker', icon: Highlighter, size: 18 },
+  { id: 'calligraphy', label: 'Calligraphy', icon: PenTool, size: 16 },
+  { id: 'charcoal', label: 'Charcoal', icon: Feather, size: 10 },
+  { id: 'watercolor', label: 'Watercolor', icon: Droplets, size: 34 },
+  { id: 'neon', label: 'Neon glow', icon: Sparkles, size: 12 },
+  { id: 'rainbow', label: 'Rainbow', icon: Rainbow, size: 14 },
+  { id: 'airbrush', label: 'Airbrush', icon: SprayCan, size: 26 },
+  { id: 'roller', label: 'Roller', icon: PaintRoller, size: 52 },
+  { id: 'eraser', label: 'Eraser', icon: Eraser, size: 26 },
+  { id: 'fill', label: 'Fill bucket', icon: PaintBucket, size: 1 },
+  { id: 'stamp', label: 'Stamps', icon: Stamp, size: 12 },
+];

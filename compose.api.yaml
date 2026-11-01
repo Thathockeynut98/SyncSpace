@@ -4,6 +4,10 @@ services:
       context: ./api
     restart: unless-stopped
     environment:
+      SYNCSPACE_STUN_URL: ${SYNCSPACE_STUN_URL:-}
+      SYNCSPACE_TURN_URL: ${SYNCSPACE_TURN_URL:-}
+      SYNCSPACE_TURN_SECRET: ${SYNCSPACE_TURN_SECRET:-}
+      SYNCSPACE_ALLOWED_ORIGINS: ${SYNCSPACE_ALLOWED_ORIGINS:-http://localhost:3003,http://127.0.0.1:3003}
       PGHOST: db
       PGPORT: "5432"
       PGDATABASE: syncspace

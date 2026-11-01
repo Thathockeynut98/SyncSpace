@@ -1,0 +1,385 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 224 55% 4%;
+    --foreground: 210 40% 98%;
+    --card: 223 42% 7%;
+    --card-foreground: 210 40% 98%;
+    --popover: 223 44% 7%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 239 84% 67%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 223 30% 14%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 223 30% 14%;
+    --muted-foreground: 216 22% 66%;
+    --accent: 271 81% 66%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 30% 18%;
+    --input: 222 30% 18%;
+    --ring: 239 84% 67%;
+    --chart-1: 239 84% 67%;
+    --chart-2: 271 81% 66%;
+    --chart-3: 322 81% 65%;
+    --chart-4: 173 68% 52%;
+    --chart-5: 38 92% 62%;
+    --radius: 1rem;
+    --font-heading: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-body: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-display: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    --sidebar-background: 224 45% 6%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 239 84% 67%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 223 30% 14%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 222 30% 18%;
+    --sidebar-ring: 239 84% 67%;
+  }
+
+  .dark {
+    --background: 224 55% 4%;
+    --foreground: 210 40% 98%;
+    --card: 223 42% 7%;
+    --card-foreground: 210 40% 98%;
+    --popover: 223 44% 7%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 239 84% 67%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 223 30% 14%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 223 30% 14%;
+    --muted-foreground: 216 22% 66%;
+    --accent: 271 81% 66%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 30% 18%;
+    --input: 222 30% 18%;
+    --ring: 239 84% 67%;
+    --sidebar-background: 224 45% 6%;
+    --sidebar-foreground: 210 40% 96%;
+    --sidebar-primary: 239 84% 67%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 223 30% 14%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 222 30% 18%;
+    --sidebar-ring: 239 84% 67%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+    background-image: radial-gradient(120% 90% at 12% -10%, rgba(79, 70, 229, 0.22), transparent 60%),
+      radial-gradient(100% 80% at 92% 4%, rgba(217, 70, 239, 0.16), transparent 62%),
+      radial-gradient(90% 70% at 50% 110%, rgba(139, 92, 246, 0.14), transparent 60%);
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    background: rgba(99, 102, 241, 0.4);
+    color: white;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.18);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.32);
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    background: rgba(10, 15, 28, 0.72);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+  }
+
+  .glass-card {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.018));
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+  }
+
+  .text-aurora {
+    background: linear-gradient(100deg, #a5b4fc 0%, #c4b5fd 45%, #f0abfc 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+}
+
+/* Late-night wind-down: the interface warms and dims by each person's local clock. */
+html[data-wind-down='dusk'],
+html[data-wind-down='deep'] {
+  --foreground: 32 32% 95%;
+  --background: 28 34% 4%;
+  --card: 26 26% 7%;
+  --card-foreground: 32 32% 95%;
+  --popover: 26 26% 7%;
+  --popover-foreground: 32 32% 95%;
+  --primary: 32 74% 62%;
+  --secondary: 26 20% 13%;
+  --secondary-foreground: 32 28% 93%;
+  --muted: 26 20% 13%;
+  --muted-foreground: 32 16% 66%;
+  --accent: 16 68% 58%;
+  --border: 28 18% 17%;
+  --input: 28 18% 17%;
+  --ring: 32 74% 62%;
+  --wind-down-veil: 0.16;
+}
+
+html[data-wind-down='deep'] {
+  --foreground: 30 26% 90%;
+  --background: 24 30% 2%;
+  --card: 22 22% 5%;
+  --card-foreground: 30 26% 90%;
+  --popover: 22 22% 5%;
+  --popover-foreground: 30 26% 90%;
+  --primary: 30 66% 55%;
+  --secondary: 22 18% 10%;
+  --secondary-foreground: 30 22% 88%;
+  --muted: 22 18% 10%;
+  --muted-foreground: 30 13% 58%;
+  --accent: 14 58% 52%;
+  --border: 24 16% 13%;
+  --input: 24 16% 13%;
+  --ring: 30 66% 55%;
+  --wind-down-veil: 0.32;
+}
+
+body {
+  transition: background-color 3s ease, color 3s ease;
+}
+
+html[data-wind-down='dusk'] body,
+html[data-wind-down='deep'] body {
+  background-image: radial-gradient(120% 90% at 12% -10%, rgba(214, 140, 52, 0.16), transparent 60%),
+    radial-gradient(100% 80% at 92% 4%, rgba(190, 110, 40, 0.12), transparent 62%),
+    radial-gradient(90% 70% at 50% 110%, rgba(150, 80, 26, 0.14), transparent 60%);
+}
+
+/* A warm amber veil that pulls the blue out of everything on screen. */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  background: rgb(255, 168, 82);
+  mix-blend-mode: multiply;
+  opacity: var(--wind-down-veil, 0);
+  transition: opacity 5s ease;
+}
+
+.glass-card,
+.glass-panel {
+  transition: background-color 3s ease, border-color 3s ease;
+}
+
+/* ---------- Appearance: accent glows, wallpapers, daylight ---------- */
+
+:root {
+  --aura-1: 245 82% 62%;
+  --aura-2: 300 82% 68%;
+  --aura-3: 258 84% 66%;
+  --aura-4: 190 90% 55%;
+}
+
+.aura-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(130px);
+}
+.aura-1 {
+  background-color: hsl(var(--aura-1) / 0.26);
+}
+.aura-2 {
+  background-color: hsl(var(--aura-2) / 0.22);
+}
+.aura-3 {
+  background-color: hsl(var(--aura-3) / 0.2);
+}
+.aura-4 {
+  background-color: hsl(var(--aura-4) / 0.12);
+}
+
+.wallpaper-veil {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    hsl(var(--background) / 0.35) 55%,
+    hsl(var(--background)) 100%
+  );
+}
+
+.wallpaper-aurora {
+  background-color: transparent;
+}
+
+.wallpaper-starry {
+  --wall-base: hsl(233 58% 5%);
+  --dot: rgba(255, 255, 255, 0.8);
+  background-color: var(--wall-base);
+  background-image: radial-gradient(1.6px 1.6px at 30% 20%, var(--dot), transparent 60%),
+    radial-gradient(1.2px 1.2px at 72% 62%, var(--dot), transparent 60%),
+    radial-gradient(1.8px 1.8px at 14% 84%, var(--dot), transparent 60%),
+    radial-gradient(1.2px 1.2px at 56% 34%, var(--dot), transparent 60%);
+  background-size: 220px 220px, 300px 300px, 420px 420px, 520px 520px;
+}
+
+.wallpaper-sunset {
+  --wall-base: hsl(20 45% 8%);
+  --wash-a: rgba(251, 113, 133, 0.34);
+  --wash-b: rgba(251, 191, 36, 0.22);
+  background-color: var(--wall-base);
+  background-image: radial-gradient(120% 85% at 20% 110%, var(--wash-a), transparent 65%),
+    radial-gradient(100% 70% at 85% 5%, var(--wash-b), transparent 60%);
+}
+
+.wallpaper-forest {
+  --wall-base: hsl(168 42% 5%);
+  --wash-a: rgba(16, 185, 129, 0.16);
+  --wash-b: rgba(45, 212, 191, 0.14);
+  background-color: var(--wall-base);
+  background-image: linear-gradient(180deg, var(--wash-a), transparent 55%),
+    radial-gradient(90% 70% at 80% 0%, var(--wash-b), transparent 60%);
+}
+
+.wallpaper-linen {
+  --wall-base: hsl(30 26% 10%);
+  --weave: rgba(255, 255, 255, 0.055);
+  background-color: var(--wall-base);
+  background-image: radial-gradient(var(--weave) 1px, transparent 1px);
+  background-size: 6px 6px;
+}
+
+/* Daylight: warm paper instead of midnight glass. */
+html[data-theme='light'] {
+  --background: 34 44% 96%;
+  --foreground: 228 32% 14%;
+  --card: 0 0% 100%;
+  --card-foreground: 228 32% 14%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 228 32% 14%;
+  --secondary: 30 28% 90%;
+  --secondary-foreground: 228 30% 18%;
+  --muted: 30 28% 90%;
+  --muted-foreground: 228 14% 40%;
+  --border: 228 18% 84%;
+  --input: 228 18% 84%;
+  --primary-foreground: 0 0% 100%;
+  --wind-down-veil: 0.06;
+}
+
+html[data-theme='light'] body {
+  background-image: radial-gradient(120% 90% at 12% -10%, rgba(99, 102, 241, 0.16), transparent 60%),
+    radial-gradient(100% 80% at 92% 4%, rgba(236, 72, 153, 0.12), transparent 62%),
+    radial-gradient(90% 70% at 50% 110%, rgba(139, 92, 246, 0.1), transparent 60%);
+}
+
+html[data-theme='light'] .wallpaper-starry {
+  --wall-base: hsl(214 45% 93%);
+  --dot: rgba(30, 41, 59, 0.35);
+}
+html[data-theme='light'] .wallpaper-sunset {
+  --wall-base: hsl(28 72% 94%);
+  --wash-a: rgba(251, 113, 133, 0.3);
+  --wash-b: rgba(251, 191, 36, 0.34);
+}
+html[data-theme='light'] .wallpaper-forest {
+  --wall-base: hsl(150 30% 94%);
+  --wash-a: rgba(16, 185, 129, 0.14);
+  --wash-b: rgba(45, 212, 191, 0.16);
+}
+html[data-theme='light'] .wallpaper-linen {
+  --wall-base: hsl(34 42% 95%);
+  --weave: rgba(90, 70, 50, 0.1);
+}
+html[data-theme='light'] .aura-blob {
+  opacity: 0.6;
+}
+
+html[data-theme='light'] .glass-panel {
+  background: rgba(255, 255, 255, 0.78);
+}
+
+html[data-theme='light'] .glass-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.66));
+  border-color: rgba(15, 23, 42, 0.08);
+}
+
+html[data-theme='light'] .text-aurora {
+  background: linear-gradient(100deg, #4f46e5 0%, #7c3aed 45%, #c026d3 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* The room is drawn with light-on-dark utilities, so daylight re-inks them. */
+html[data-theme='light'] .text-white,
+html[data-theme='light'] .text-slate-50,
+html[data-theme='light'] .text-slate-100 {
+  color: hsl(228 32% 14%) !important;
+}
+html[data-theme='light'] .text-slate-200 {
+  color: hsl(228 28% 20%) !important;
+}
+html[data-theme='light'] .text-slate-300 {
+  color: hsl(228 20% 30%) !important;
+}
+html[data-theme='light'] .text-slate-400 {
+  color: hsl(228 14% 42%) !important;
+}
+html[data-theme='light'] .border-white\/5,
+html[data-theme='light'] .border-white\/8,
+html[data-theme='light'] .border-white\/10 {
+  border-color: rgba(15, 23, 42, 0.1) !important;
+}
+html[data-theme='light'] .bg-white\/5 {
+  background-color: rgba(255, 255, 255, 0.72) !important;
+}
+html[data-theme='light'] .bg-white\/10 {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+}
+html[data-theme='light'] [class*='bg-slate-9'],
+html[data-theme='light'] [class*='bg-slate-8'] {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+}

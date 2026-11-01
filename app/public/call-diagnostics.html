@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SyncSpace 2.1 · Call Studio Diagnostics</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,Segoe UI,sans-serif;background:#100d20;color:#f4efff}*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at 80% 0%,#38215b 0%,transparent 48%),radial-gradient(ellipse at 0% 80%,#25183f 0%,transparent 55%),#100d20;min-height:100vh}
+main{max-width:1100px;margin:auto;padding:38px 22px}h1{font-size:clamp(26px,4vw,43px);margin:8px 0}h2{font-size:20px}p{color:#c9bddb;line-height:1.6}.tag{color:#c3a1ff;letter-spacing:.15em;text-transform:uppercase;font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}.card{background:#20182fdd;border:1px solid #6b518a66;border-radius:20px;padding:22px;box-shadow:0 10px 32px #08051055}
+button,select{background:#6743a4;border:1px solid #9266c5;color:white;border-radius:12px;padding:11px 15px;font-size:14px;cursor:pointer;margin:5px 6px 5px 0}
+button:hover{background:#7954b8}button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#332746}.danger{background:#74365a}
+video{background:#0d0a18;width:100%;height:185px;object-fit:contain;border-radius:14px;border:1px solid #58436e}
+.stat{padding:8px 0;border-bottom:1px solid #57436955}.ok{color:#9ee6b9}.warn{color:#ffd18d}.bad{color:#ff9baf}
+pre{background:#0d0a19;padding:16px;border-radius:12px;max-height:230px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}
+label{display:block;margin-top:10px;color:#cbbce4}.small{font-size:12px}.pill{display:inline-block;padding:6px 10px;background:#342448;border-radius:100px}
+</style></head><body><main>
+<div class="tag">SYNCSPACE 2.1 / CALL STUDIO</div><h1>Connection Lab <span style="color:#c6a0ff">✦</span></h1>
+<p>Test your microphone, camera, screen sharing, and a real local WebRTC connection—without a second person. All media stays in this browser during the self-test. This does not place a real call or test your remote TURN server.</p>
+<div class="grid">
+<section class="card"><h2>🎙️ Microphone & speakers</h2><p id="micStatus" class="pill">Not tested</p>
+<div class="stat">Microphone level <meter id="meter" min="0" max="100" value="0" style="width:100%"></meter></div>
+<button id="micStart">Test microphone</button><button id="micStop" class="secondary">Stop microphone</button>
+<p class="small">Speak normally to see the input meter move. Speaker test plays a short tone.</p><button id="speaker">Test speakers 🔊</button>
+</section>
+<section class="card"><h2>📷 Camera preview</h2><video id="camera" autoplay muted playsinline></video>
+<p id="camStatus" class="pill">Not tested</p><br><button id="camStart">Start camera</button><button id="camStop" class="secondary">Stop camera</button></section>
+<section class="card"><h2>🖥️ Screen sharing</h2><video id="screen" autoplay muted playsinline></video>
+<p id="screenStatus" class="pill">Not tested</p><br><button id="screenStart">Share screen</button><button id="screenStop" class="secondary">Stop sharing</button>
+<p class="small">Your browser will ask you to choose a screen or window. Nothing is uploaded.</p></section>
+<section class="card"><h2>🔗 WebRTC loopback</h2><p>Creates two peer connections inside this browser and sends a camera or microphone stream between them. No other user is required.</p>
+<video id="remote" autoplay muted playsinline></video>
+<div id="rtcStatus" class="pill">Not tested</div><br>
+<button id="rtcStart">Run connection test</button><button id="rtcStop" class="secondary">Disconnect</button>
+<div class="stat">ICE state: <span id="ice">—</span></div><div class="stat">Round-trip time: <span id="rtt">—</span></div><div class="stat">Packets received: <span id="packets">—</span></div>
+<p class="small">Loopback media is muted to prevent feedback. The test confirms media transport, not audible playback or internet connectivity.</p>
+</section>
+</div>
+<section class="card" style="margin-top:18px"><h2>🧪 Test results</h2><div id="results"></div><button id="runChecks">Check browser support</button><button id="clear" class="secondary">Clear log</button><pre id="log" aria-live="polite">Ready. Click a test above.</pre></section>
+<p class="small">Privacy: permissions are requested only when you press a test button. Stop buttons release tracks. Closing the page ends all tests. Use localhost or HTTPS for media permissions.</p>
+</main>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id), state={mic:null,cam:null,screen:null,pc1:null,pc2:null,remote:null,audioCtx:null,analyser:null,meterTimer:null,statsTimer:null,rtcTracks:null};
+function log(s){$('log').textContent=`[${new Date().toLocaleTimeString()}] ${s}\n`+$('log').textContent.slice(0,4500)}
+function status(id,s,kind='warn'){$(id).textContent=s;$(id).className='pill '+kind;log(s)}
+function stopStream(stream){if(stream)stream.getTracks().forEach(t=>t.stop())}
+function check(){const secure=window.isSecureContext;const media=!!navigator.mediaDevices?.getUserMedia;const display=!!navigator.mediaDevices?.getDisplayMedia;const rtc=!!window.RTCPeerConnection;
+$('results').innerHTML=[['Secure context',secure],['Microphone/camera API',media],['Screen capture API',display],['WebRTC peer connections',rtc]].map(([name,yes])=>`<div class="stat">${name}: <strong class="${yes?'ok':'bad'}">${yes?'Available':'Unavailable'}</strong></div>`).join('');
+log('Browser capability checks complete')}
+async function startMic(){stopMic();try{state.mic=await navigator.mediaDevices.getUserMedia({audio:true,video:false});const C=window.AudioContext||window.webkitAudioContext;state.audioCtx=new C();const source=state.audioCtx.createMediaStreamSource(state.mic);state.analyser=state.audioCtx.createAnalyser();state.analyser.fftSize=512;source.connect(state.analyser);const data=new Uint8Array(state.analyser.fftSize);state.meterTimer=setInterval(()=>{state.analyser.getByteTimeDomainData(data);let sum=0;for(const n of data){const v=(n-128)/128;sum+=v*v}$('meter').value=Math.min(100,Math.round(Math.sqrt(sum/data.length)*400))},100);status('micStatus','Microphone active — speak to test','ok')}catch(e){status('micStatus','Microphone unavailable: '+e.message,'bad')}}
+function stopMic(){clearInterval(state.meterTimer);state.meterTimer=null;stopStream(state.mic);state.mic=null;$('meter').value=0;if(state.audioCtx){state.audioCtx.close().catch(()=>{});state.audioCtx=null}status('micStatus','Microphone stopped')}
+async function speakers(){try{const C=window.AudioContext||window.webkitAudioContext;const ctx=new C();await ctx.resume();const osc=ctx.createOscillator(),gain=ctx.createGain();osc.type='sine';osc.frequency.value=660;gain.gain.value=.04;osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+.22);osc.onended=()=>ctx.close();log('Speaker test tone played')}catch(e){log('Speaker test failed: '+e.message)}}
+async function startCam(){stopCam();try{state.cam=await navigator.mediaDevices.getUserMedia({video:true,audio:false});$('camera').srcObject=state.cam;status('camStatus','Camera active','ok')}catch(e){status('camStatus','Camera unavailable: '+e.message,'bad')}}
+function stopCam(){stopStream(state.cam);state.cam=null;$('camera').srcObject=null;status('camStatus','Camera stopped')}
+async function startScreen(){stopScreen();try{state.screen=await navigator.mediaDevices.getDisplayMedia({video:true,audio:false});$('screen').srcObject=state.screen;state.screen.getVideoTracks()[0].addEventListener('ended',stopScreen,{once:true});status('screenStatus','Screen capture active','ok')}catch(e){status('screenStatus','Screen capture unavailable: '+e.message,'bad')}}
+function stopScreen(){stopStream(state.screen);state.screen=null;$('screen').srcObject=null;status('screenStatus','Screen sharing stopped')}
+function stopRtc(){clearInterval(state.statsTimer);state.statsTimer=null;state.pc1?.close();state.pc2?.close();state.pc1=state.pc2=null;stopStream(state.rtcTracks);state.rtcTracks=null;$('remote').srcObject=null;$('ice').textContent='—';$('rtt').textContent='—';$('packets').textContent='—';status('rtcStatus','Loopback disconnected')}
+async function startRtc(){stopRtc();try{
+let stream;try{stream=await navigator.mediaDevices.getUserMedia({video:true,audio:true})}catch{try{stream=await navigator.mediaDevices.getUserMedia({audio:true})}catch{stream=await navigator.mediaDevices.getUserMedia({video:true})}}
+state.rtcTracks=stream;const a=state.pc1=new RTCPeerConnection({iceServers:[]}),b=state.pc2=new RTCPeerConnection({iceServers:[]});
+a.onicecandidate=e=>{if(e.candidate)b.addIceCandidate(e.candidate).catch(err=>log('ICE B: '+err.message))};
+b.onicecandidate=e=>{if(e.candidate)a.addIceCandidate(e.candidate).catch(err=>log('ICE A: '+err.message))};
+b.ontrack=e=>{if(!state.remote){state.remote=new MediaStream();$('remote').srcObject=state.remote}state.remote.addTrack(e.track)};
+a.onconnectionstatechange=()=>{const s=a.connectionState;$('ice').textContent=s;if(s==='connected')status('rtcStatus','Loopback connected — media flowing','ok');else if(s==='failed')status('rtcStatus','Loopback connection failed','bad')};
+stream.getTracks().forEach(t=>a.addTrack(t,stream));
+const offer=await a.createOffer();await a.setLocalDescription(offer);await b.setRemoteDescription(offer);const answer=await b.createAnswer();await b.setLocalDescription(answer);await a.setRemoteDescription(answer);
+state.statsTimer=setInterval(async()=>{if(!state.pc2)return;try{const stats=await b.getStats();let count=0;stats.forEach(x=>{if(x.type==='inbound-rtp')count+=x.packetsReceived||0});$('packets').textContent=String(count);const astats=await a.getStats();let rtt=null;astats.forEach(x=>{if(x.type==='candidate-pair'&&x.state==='succeeded'&&typeof x.currentRoundTripTime==='number')rtt=Math.round(x.currentRoundTripTime*1000)});$('rtt').textContent=rtt===null?'Not reported':rtt+' ms'}catch{}},1000);
+status('rtcStatus','Negotiating local WebRTC connection…')
+}catch(e){stopRtc();status('rtcStatus','Loopback failed: '+e.message,'bad')}}
+$('micStart').onclick=startMic;$('micStop').onclick=stopMic;$('speaker').onclick=speakers;$('camStart').onclick=startCam;$('camStop').onclick=stopCam;$('screenStart').onclick=startScreen;$('screenStop').onclick=stopScreen;$('rtcStart').onclick=startRtc;$('rtcStop').onclick=stopRtc;$('runChecks').onclick=check;$('clear').onclick=()=>$('log').textContent='';window.addEventListener('pagehide',()=>{stopMic();stopCam();stopScreen();stopRtc()});check();
+})();
+</script></body></html>

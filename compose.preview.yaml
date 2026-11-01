@@ -6,6 +6,9 @@ services:
     volumes:
       - ./preview/index.html:/usr/share/nginx/html/index.html:ro
       - ./preview/vault.js:/usr/share/nginx/html/vault.js:ro
+      - ./preview/calling.js:/usr/share/nginx/html/calling.js:ro
+      - ./preview/messaging.js:/usr/share/nginx/html/messaging.js:ro
+      - ./preview/message-crypto.mjs:/usr/share/nginx/html/message-crypto.mjs:ro
       - ./preview/inventory.js:/usr/share/nginx/html/inventory.js:ro
       - ./preview/polish.css:/usr/share/nginx/html/polish.css:ro
       - ./preview/home-layout.css:/usr/share/nginx/html/home-layout.css:ro

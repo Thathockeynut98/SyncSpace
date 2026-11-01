@@ -18,3 +18,20 @@ storage/
 *.p12
 *.pfx
 .DS_Store
+# Local development and private data
+**/node_modules/
+**/dist/
+**/build/
+**/coverage/
+**/.env
+**/.env.*
+!**/.env.example
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/*.sqlite
+**/*.sqlite3
+**/*.db
+**/*backup*
+**/*export*

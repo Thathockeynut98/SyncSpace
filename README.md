@@ -16,27 +16,29 @@ A private shared space for two people. SyncSpace is being migrated from Base44 t
 
 React + Vite (frontend), Node.js (API), PostgreSQL (database), Socket.IO (real-time signaling), WebRTC (calls), Docker Compose (deployment).
 
-## Local development (infrastructure)
+## Current development workflow
 
-The application source and Docker starter are being reviewed before committing to avoid exposing credentials embedded in the Base44 export.
+The original React app is now under `app/`; `api/` is the maintained local backend.
+The corrected Windows source is retained under `integration/windows-api/` for
+reference. Development progress and validation are tracked in
+[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
-Once the reviewed app source is added under `app/`, start the frontend:
+Use Node 22.12+ and PostgreSQL 16. Install with `npm ci` in both `api/` and `app/`.
+Apply the additive database migrations in filename order to an isolated development
+database, configure the API's PG variables, then run `npm start` from `api/` and
+`npm run dev` from `app/`. Vite serves port 3003 and proxies API/WebSocket requests
+to port 4000. The default frontend Compose build still needs packaging work;
+use this Node development workflow for the original React interface.
 
-```powershell
-docker compose up --build -d
-```
+Messaging, local session authentication, room mapping, persistent reactions/pins,
+and Call Studio signaling use the local backend. Remaining migration work includes
+private-file storage, full collection editing, real-device/TURN call validation,
+and diagnosis of the four private legacy messages. No cloud check is a validation
+of the owner's Windows data or a Windows deployment.
 
-Then visit `http://localhost:3001`.
-
-To start the optional PostgreSQL service as well, create a local `.env` with `SYNCSPACE_DB_PASSWORD` set to a strong random password and run:
-
-```powershell
-docker compose -f compose.yaml -f compose.database.yaml up --build -d
-```
-
-Database data persists in a Docker named volume. The database has no published host port.
-
-**Note:** The database is provisioned but the schema, API, authentication, and data import are not implemented yet. The frontend is not yet independent of Base44.
+Never replace restored mappings, invite-derived encryption information, imported
+messages or database volumes. Back up real data privately before applying changes
+to any existing deployment; Windows deployment requires explicit approval.
 
 ## Migration roadmap
 
