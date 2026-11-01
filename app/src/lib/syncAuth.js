@@ -1,5 +1,6 @@
+import { syncspaceApiBase } from "./syncspaceConnection";
 import {clearSpaceKeys} from './spaceCrypto';
-﻿const API = "/api";
+﻿const API = syncspaceApiBase;
 const TOKEN_KEY = "syncspace21_session";
 function getToken() {
   return sessionStorage.getItem(TOKEN_KEY);

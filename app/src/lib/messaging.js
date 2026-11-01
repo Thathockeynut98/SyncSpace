@@ -1,7 +1,8 @@
+import { syncspaceApiBase } from "./syncspaceConnection";
 import { syncAuth } from './syncAuth';
 export async function messageRequest(path, options = {}) {
  const token=syncAuth.getToken();if(!token)throw Object.assign(new Error('Please sign in again.'),{status:401});
- const response=await fetch('/api'+path,{...options,signal:options.signal||AbortSignal.timeout(15000),headers:{'Content-Type':'application/json',Authorization:'Bearer '+token,...options.headers}});
+ const response=await fetch(syncspaceApiBase+path,{...options,signal:options.signal||AbortSignal.timeout(15000),headers:{'Content-Type':'application/json',Authorization:'Bearer '+token,...options.headers}});
  if(!response.ok)throw Object.assign(new Error(`Request failed (${response.status}).`),{status:response.status});
  return response.json();
 }

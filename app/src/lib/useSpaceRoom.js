@@ -1,3 +1,4 @@
+import { syncspaceWsBase } from "./syncspaceConnection";
 import {messageRequest} from './messaging';
 import {syncAuth} from './syncAuth';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -23,7 +24,7 @@ export function useSpaceRoom(spaceId, myName) {
   const connect=()=>{
    if(closed)return;
    const protocol=location.protocol==='https:'?'wss:':'ws:';
-   ws=new WebSocket(`${protocol}//${location.host}/rt?space=${encodeURIComponent(spaceId)}&id=${encodeURIComponent(id)}`);
+   ws=new WebSocket(`${syncspaceWsBase}?space=${encodeURIComponent(spaceId)}&id=${encodeURIComponent(id)}`);
    socket.current=ws;
    ws.onopen=()=>{ws.send(JSON.stringify({type:'auth',token:syncAuth.getToken()}))};
    ws.onerror=()=>setConnected(false);

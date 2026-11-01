@@ -35,3 +35,22 @@ storage/
 **/*.db
 **/*backup*
 **/*export*
+# SyncSpace local testing and secrets
+.env
+.env.*
+!.env.example
+!.env.sample
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.sample
+compose.testing.yaml
+compose.testing.yaml.*
+*.before-security
+*.dump
+*.bak
+*.backup
+*.key
+*.pem
+node_modules/
+app/dist/

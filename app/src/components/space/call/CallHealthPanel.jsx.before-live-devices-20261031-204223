@@ -1,0 +1,104 @@
+import { useEffect, useState } from 'react';
+export default function CallHealthPanel({ call }) {
+  const [open, setOpen] = useState(false);
+  const [stats, setStats] = useState(null);
+  const [devices, setDevices] = useState([]);
+  const [deviceStatus, setDeviceStatus] = useState('Not checked');
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    const refresh = async () => {
+      try {
+        const result = await navigator.mediaDevices.enumerateDevices();
+        if (!cancelled) setDevices(result);
+      } catch (error) {
+        if (!cancelled) setDeviceStatus(error.message);
+      }
+    };
+    refresh();
+    navigator.mediaDevices?.addEventListener?.('devicechange', refresh);
+    return () => {
+      cancelled = true;
+      navigator.mediaDevices?.removeEventListener?.('devicechange', refresh);
+    };
+  }, [open]);
+  const testDevices = async () => {
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+        video: true
+      });
+      setDeviceStatus('Microphone and camera are accessible.');
+    } catch (error) {
+      setDeviceStatus(`Device test: ${error.message}`);
+    } finally {
+      stream?.getTracks().forEach(track => track.stop());
+    }
+  };
+  const microphones = devices.filter(d => d.kind === 'audioinput');
+  const cameras = devices.filter(d => d.kind === 'videoinput');
+  return (
+    <section className="mb-4 rounded-2xl border border-purple-400/25 bg-purple-950/30 p-4 text-slate-100">
+      <button
+        type="button"
+        onClick={() => setOpen(value => !value)}
+        className="w-full text-left text-sm font-semibold text-purple-200"
+      >
+        {open ? '▼' : '▶'} Call Health & Reliability
+      </button>
+      {open && (
+        <div className="mt-4 grid gap-4 text-xs sm:grid-cols-2">
+          <div className="rounded-xl bg-white/5 p-4">
+            <h3 className="mb-3 font-semibold text-purple-200">
+              Connection Status
+            </h3>
+            <p>Call phase: {call.phase}</p>
+            <p>Line health: {call.line || 'Not connected'}</p>
+            <p>Partner present: {call.partnerHere ? 'Yes' : 'No'}</p>
+            <p className="mt-3 text-slate-400">
+              SyncSpace already supports ICE restart and automatic
+              connection rebuilding. Recovery must still be tested
+              during a real two-participant call.
+            </p>
+          </div>
+          <div className="rounded-xl bg-white/5 p-4">
+            <h3 className="mb-3 font-semibold text-purple-200">
+              Device Preflight
+            </h3>
+            <button
+              type="button"
+              onClick={testDevices}
+              className="rounded-lg bg-purple-600 px-3 py-2 text-white"
+            >
+              Test microphone and camera
+            </button>
+            <p className="mt-3">{deviceStatus}</p>
+            <p className="mt-2">
+              Microphones detected: {microphones.length}
+            </p>
+            <p>
+              Cameras detected: {cameras.length}
+            </p>
+          </div>
+          <div className="rounded-xl bg-white/5 p-4 sm:col-span-2">
+            <h3 className="mb-3 font-semibold text-purple-200">
+              Network Reliability
+            </h3>
+            <p>
+              WebRTC transport: Browser-managed encrypted connection
+            </p>
+            <p className="mt-2">
+              TURN relays can improve connectivity between different
+              networks, but require a configured server and credentials.
+            </p>
+            <p className="mt-2 text-slate-400">
+              This panel does not yet read live packet loss, RTT,
+              or the selected ICE candidate pair.
+            </p>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}

@@ -1,0 +1,51 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SyncSpace Â· Reliability</title>
+<style>
+:root{color-scheme:dark;font:14px/1.6 Segoe UI,Arial,sans-serif;color:#f7efff;background:#110d1e}*{box-sizing:border-box}
+body{margin:0;padding:22px;background:radial-gradient(ellipse at top right,#372252,transparent 65%),#110d1e}
+h1{font-size:29px;margin:0}h2{font-size:18px;margin:0 0 12px}.muted{color:#c7b9d8}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin:18px 0}
+.card{background:#211832d9;border:1px solid #73538c77;border-radius:20px;padding:20px}button,select{background:#62409c;color:white;border:1px solid #9464c3;border-radius:10px;padding:9px 12px;margin:5px 5px 5px 0;max-width:100%}
+button{cursor:pointer}button:hover{background:#7955b2}select{width:100%}label{display:block;margin-top:8px}.ok{color:#9be6b5}.warn{color:#ffdc9c}.bad{color:#ff9fb2}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:210px;overflow:auto;background:#110c1e;border-radius:10px;padding:12px}
+video{width:100%;height:170px;object-fit:contain;background:#0b0912;border-radius:12px}
+small{color:#c4b7d5}.stat{padding:7px 0;border-bottom:1px solid #ffffff18}
+</style></head><body>
+<h1>âœ¦ Call Reliability Dashboard</h1><p class="muted">Pre-call checks, local connection diagnostics, relay visibility and two-browser test guidance. These tests do not modify an active call.</p>
+<div class="grid">
+<section class="card"><h2>ðŸŽ™ï¸ Device preflight</h2><label>Microphone<select id="mic"><option value="">Default</option></select></label><label>Camera<select id="cam"><option value="">Default</option></select></label><label>Speaker output<select id="speaker"><option value="">System default</option></select></label>
+<button id="test">Test selected devices</button><button id="stop">Stop preview</button>
+<video id="preview" autoplay playsinline muted></video><p id="deviceStatus" class="muted">Not tested</p><small>Device labels may require browser permission. Selected devices apply to this preview only, not to an active call.</small></section>
+<section class="card"><h2>ðŸ“Š Local WebRTC quality</h2><button id="connect">Start loopback test</button><button id="disconnect">Disconnect</button>
+<div class="stat">Connection: <b id="connection">Idle</b></div><div class="stat">ICE: <b id="ice">â€”</b></div><div class="stat">RTT: <b id="rtt">â€”</b></div><div class="stat">Packets received: <b id="packets">â€”</b></div><div class="stat">Packets lost: <b id="lost">â€”</b></div>
+<p class="muted">Measures a connection between two local peers, not an actual partner call or internet path.</p></section>
+<section class="card"><h2>ðŸ›¡ï¸ TURN readiness</h2><p class="muted">Inspect whether this browser's configured ICE servers include a TURN relay. A relay's presence does not guarantee it is reachable.</p>
+<button id="turn">Inspect browser relay config</button><p id="turnResult" class="muted">Not checked</p><small>For the actual SyncSpace backend, TURN is configured through its server environment and authenticated RTC configuration endpoint. This standalone page cannot safely read private API credentials.</small></section>
+<section class="card"><h2>ðŸ”„ Recovery readiness</h2><p>SyncSpace's existing calling hook already attempts ICE restarts and rebuilds failed peer connections. Test the real recovery behavior using two signed-in browser sessions.</p>
+<div class="stat">Browser online: <b id="online">â€”</b></div><div class="stat">Media API: <b id="media">â€”</b></div><div class="stat">WebRTC API: <b id="webrtc">â€”</b></div><button id="refresh">Refresh checks</button>
+<p class="muted">Browser online status alone cannot confirm a usable call path.</p></section>
+<section class="card"><h2>ðŸ‘¥ Two-participant test</h2><p>1. Open SyncSpace in Chrome and sign in as test account A.</p><p>2. Open Edge or a private window and sign in as test account B.</p><p>3. Ensure both accounts belong to the same isolated test space.</p><p>4. Start a call in one browser and answer in the other.</p><p>5. Test mute, camera, screen sharing, hang-up, and brief network interruption.</p><small>Use headphones to avoid feedback. This test requires two distinct accounts.</small></section>
+<section class="card"><h2>ðŸ§¾ Test log</h2><button id="clear">Clear log</button><pre id="log">Ready.</pre><small>Diagnostic events stay in this browser session. Do not share tokens or private call details in logs.</small></section>
+</div>
+<script>
+(()=>{'use strict';const $=x=>document.getElementById(x);
+let preview=null,a=null,b=null,local=null,remote=null,timer=null;
+function log(m){$('log').textContent='['+new Date().toLocaleTimeString()+'] '+m+'\n'+$('log').textContent.slice(0,3000)}
+function state(){ $('online').textContent=navigator.onLine?'Yes':'No';$('media').textContent=navigator.mediaDevices?.getUserMedia?'Available':'Unavailable';$('webrtc').textContent=window.RTCPeerConnection?'Available':'Unavailable';}
+async function devices(){if(!navigator.mediaDevices?.enumerateDevices)return;try{const all=await navigator.mediaDevices.enumerateDevices();for(const [kind,id] of [['audioinput','mic'],['videoinput','cam'],['audiooutput','speaker']]){const select=$(id),previous=select.value;select.replaceChildren(new Option(kind==='audiooutput'?'System default':'Default',''));all.filter(x=>x.kind===kind).forEach((x,i)=>select.add(new Option(x.label||kind+' '+(i+1),x.deviceId)));if([...select.options].some(x=>x.value===previous))select.value=previous;}}catch(e){log('Device list: '+e.message)}}
+function stopPreview(){preview?.getTracks().forEach(t=>t.stop());preview=null;$('preview').srcObject=null;$('deviceStatus').textContent='Preview stopped'}
+async function test(){stopPreview();try{const audio=$('mic').value?{deviceId:{exact:$('mic').value}}:true,video=$('cam').value?{deviceId:{exact:$('cam').value}}:true;preview=await navigator.mediaDevices.getUserMedia({audio,video});$('preview').srcObject=preview;$('deviceStatus').textContent='Selected microphone and camera opened successfully';await devices();log('Device preflight passed')}catch(e){$('deviceStatus').textContent=e.name+': '+e.message;log('Preflight failed: '+e.message)}}
+function disconnect(){clearInterval(timer);timer=null;a?.close();b?.close();a=b=null;local?.getTracks().forEach(t=>t.stop());local=null;remote=null;$('connection').textContent='Idle';$('ice').textContent='â€”';$('rtt').textContent='â€”';$('packets').textContent='â€”';$('lost').textContent='â€”'}
+async function connect(){disconnect();try{local=await navigator.mediaDevices.getUserMedia({audio:true});a=new RTCPeerConnection({iceServers:[]});b=new RTCPeerConnection({iceServers:[]});const first=a,second=b;
+first.onicecandidate=e=>{if(e.candidate)second.addIceCandidate(e.candidate).catch(()=>{})};
+second.onicecandidate=e=>{if(e.candidate)first.addIceCandidate(e.candidate).catch(()=>{})};
+first.onconnectionstatechange=()=>{$('connection').textContent=first.connectionState;log('Loopback: '+first.connectionState)};
+first.oniceconnectionstatechange=()=>{$('ice').textContent=first.iceConnectionState};
+second.ontrack=e=>{remote=e.streams[0]};
+local.getTracks().forEach(t=>first.addTrack(t,local));
+const offer=await first.createOffer();await first.setLocalDescription(offer);await second.setRemoteDescription(offer);
+const answer=await second.createAnswer();await second.setLocalDescription(answer);await first.setRemoteDescription(answer);
+timer=setInterval(async()=>{if(!a||!b)return;try{const stats=await b.getStats();let packets=0,lost=0;stats.forEach(x=>{if(x.type==='inbound-rtp'){packets+=x.packetsReceived||0;lost+=x.packetsLost||0}});$('packets').textContent=packets;$('lost').textContent=lost;const other=await a.getStats();let rtt=null;other.forEach(x=>{if(x.type==='candidate-pair'&&x.state==='succeeded'&&typeof x.currentRoundTripTime==='number')rtt=Math.round(x.currentRoundTripTime*1000)});$('rtt').textContent=rtt===null?'Not reported':rtt+' ms'}catch(e){log('Stats: '+e.message)}},1000);log('Local WebRTC test started')}catch(e){disconnect();log('WebRTC test failed: '+e.message);$('connection').textContent='Failed'}}
+$('test').onclick=test;$('stop').onclick=stopPreview;$('connect').onclick=connect;$('disconnect').onclick=disconnect;
+$('refresh').onclick=state;$('clear').onclick=()=>$('log').textContent='';$('turn').onclick=()=>{$('turnResult').textContent='This local test uses no TURN servers. Inspect the SyncSpace API RTC configuration separately to verify remote relay support.';log('Local loopback uses no TURN relay')};
+window.addEventListener('online',state);window.addEventListener('offline',state);window.addEventListener('pagehide',()=>{disconnect();stopPreview()});navigator.mediaDevices?.addEventListener?.('devicechange',devices);state();devices();
+})();
+</script></body></html>

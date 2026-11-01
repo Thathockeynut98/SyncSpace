@@ -56,12 +56,12 @@ export function AuthProvider({ children }) {
       setIsAuthenticated(false);
       setAuthError(null);
       if (shouldRedirect) {
-        window.location.replace("/login");
+        window.location.replace(`${import.meta.env.BASE_URL}#/login`);
       }
     }
   };
   const navigateToLogin = () => {
-    window.location.replace("/login");
+    window.location.replace(`${import.meta.env.BASE_URL}#/login`);
   };
   return (
     <AuthContext.Provider
@@ -90,3 +90,4 @@ export function useAuth() {
   }
   return context;
 }
+
