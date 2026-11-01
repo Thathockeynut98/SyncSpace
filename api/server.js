@@ -26,8 +26,13 @@ async function accountFromToken(req) {
 // Configure a comma-separated SYNCSPACE_ALLOWED_ORIGINS on the API host.
 // This is a browser boundary, not a replacement for authentication.
 const allowedOrigins = new Set(
-  (process.env.SYNCSPACE_ALLOWED_ORIGINS || "")
-    .split(",")
+  [
+    "http://127.0.0.1:3003",
+    "http://localhost:3003",
+    "http://127.0.0.1:3001",
+    "http://localhost:3001",
+    ...(process.env.SYNCSPACE_ALLOWED_ORIGINS || "").split(","),
+  ]
     .map((origin) => origin.trim())
     .filter((origin) => {
       try {
