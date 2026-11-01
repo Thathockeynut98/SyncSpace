@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { syncspaceApiBase } from '@/lib/syncspaceConnection';
 import { Check, Copy, Infinity as InfinityIcon } from 'lucide-react';
 import SettingsSheet from './settings/SettingsSheet';
 import PresenceGlow from './PresenceGlow';import { displayName } from '@/lib/spaceData';
@@ -15,6 +16,32 @@ function initials(name) {
 
 export default function SpaceHeader({ space, user, room, onNameSaved }) {
   const [copied, setCopied] = useState(false);
+  const [connectionOpen, setConnectionOpen] = useState(false);
+  const [apiStatus, setApiStatus] = useState('unchecked');
+  const [checkingApi, setCheckingApi] = useState(false);
+
+  const checkConnection = async () => {
+    setCheckingApi(true);
+    setApiStatus('checking');
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 6000);
+      try {
+        const response = await fetch(`${syncspaceApiBase}/health`, {
+          method: 'GET',
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        setApiStatus(response.ok ? 'online' : 'unavailable');
+      } finally {
+        clearTimeout(timer);
+      }
+    } catch {
+      setApiStatus('unavailable');
+    } finally {
+      setCheckingApi(false);
+    }
+  };
 
   const partnerOnline = (room.peers || []).find((peer) => peer.seat !== room.seat);
   const waitingForPartner = (space.member_emails || []).length < 2;
@@ -74,6 +101,35 @@ export default function SpaceHeader({ space, user, room, onNameSaved }) {
               <Copy className="h-3.5 w-3.5 opacity-60 transition-opacity group-hover:opacity-100" />
             )}
           </button>
+
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setConnectionOpen((open) => !open)}
+              aria-expanded={connectionOpen}
+              aria-label="Connection status"
+              className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/80 transition hover:bg-white/10"
+            >
+              <span className={`h-2 w-2 rounded-full ${room.connected ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+              <span className="hidden sm:inline">Connection</span>
+              <span className="sm:hidden">Status</span>
+            </button>
+            {connectionOpen && (
+              <div role="region" aria-label="Connection details" className="absolute right-0 top-full z-50 mt-3 w-72 max-w-[calc(100vw-2rem)] rounded-2xl border border-violet-300/20 bg-slate-950/95 p-4 text-sm text-slate-100 shadow-2xl backdrop-blur-xl">
+                <h2 className="font-semibold text-violet-100">Connection Center</h2>
+                <p className="mt-1 text-xs text-slate-400">Your shared universe, at a glance.</p>
+                <div className="mt-4 space-y-3">
+                  <div className="flex items-center justify-between gap-3"><span>Live room</span><span className={room.connected ? 'text-emerald-300' : 'text-amber-300'}>{room.connected ? 'Connected' : 'Disconnected'}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span>Backend API</span><span className={apiStatus === 'online' ? 'text-emerald-300' : apiStatus === 'unavailable' ? 'text-rose-300' : 'text-slate-400'}>{apiStatus === 'online' ? 'Reachable' : apiStatus === 'unavailable' ? 'Unavailable' : apiStatus === 'checking' ? 'Checking…' : 'Not checked'}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span>Other person</span><span className={partnerOnline ? 'text-emerald-300' : 'text-slate-400'}>{partnerOnline ? 'Here' : 'Away'}</span></div>
+                </div>
+                <button type="button" onClick={checkConnection} disabled={checkingApi} className="mt-4 w-full rounded-xl border border-violet-400/30 bg-violet-500/20 px-3 py-2 text-xs font-medium text-violet-100 transition hover:bg-violet-500/30 disabled:opacity-50">
+                  {checkingApi ? 'Checking connection…' : 'Check backend connection'}
+                </button>
+                <p className="mt-3 text-xs leading-relaxed text-slate-400">Reachability is not a security or encryption audit. Calls also depend on device permissions and network connectivity.</p>
+              </div>
+            )}
+          </div>
 
           <SettingsSheet space={space} user={user} onSaved={onNameSaved} />
 
