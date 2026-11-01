@@ -78,3 +78,15 @@ app/                     # Frontend source (to be added after review)
 The initial CSV staging import completed successfully on the local Windows Docker deployment. PostgreSQL contains **948 staged records** across 14 nonempty entity types (17 CSV exports processed, including three empty collections). This confirms staging only; the original application is not yet connected to PostgreSQL. Media files, encrypted payload usability, authentication, and Base44 independence remain unverified.
 
 Before further migrations, create a **private** PostgreSQL backup outside the Git checkout and compare CSV source row counts with staged record counts. Never commit backup files or private exports.
+
+## Remote browser connection (not yet enabled)
+
+The GitHub Pages deployment can read repository Actions variables `SYNCSPACE_API_URL` (HTTPS API origin) and `SYNCSPACE_WS_URL` (optional WSS signaling endpoint). The frontend derives `wss://<api-host>/rt` from the HTTPS API origin if the separate WebSocket variable is unset. These values are public build-time configuration, **not secrets**.
+
+Before enabling remote access, set the backend environment variable:
+
+```text
+SYNCSPACE_ALLOWED_ORIGINS=https://thathockeynut98.github.io
+```
+
+The API permits listed origins for CORS and the realtime server independently checks WebSocket origins. The local development origins remain permitted for API requests. Never use `*` for the origin allowlist or expose a database port. A tunnel only provides transport; it does not substitute for authentication, rate limits, TURN configuration, backups, or a security review. The local Docker API will not automatically pick up repository changes until deliberately rebuilt and restarted; avoid doing so against the existing database without a backup.
