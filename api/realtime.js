@@ -4,7 +4,20 @@ import SpaceRoom from './room.js';
 import {resolveSpace} from './spaces.js';
 export function attachRealtime(server,pool,accountFromToken){
  const wss=new WebSocketServer({noServer:true,maxPayload:40000,perMessageDeflate:false});const rooms=new Map();
- const allowed=new Set((process.env.SYNCSPACE_ALLOWED_ORIGINS||'http://localhost:3003,http://127.0.0.1:3003').split(','));
+ // Match the HTTP API's trusted browser origins. Never accept wildcard origins.
+ const allowed=new Set([
+  'http://localhost:3003',
+  'http://127.0.0.1:3003',
+  'http://localhost:3001',
+  'http://127.0.0.1:3001',
+  ...(process.env.SYNCSPACE_ALLOWED_ORIGINS||'').split(',')
+ ].map(origin=>origin.trim()).filter(origin=>{
+  try{
+   const url=new URL(origin);
+   return url.origin===origin&&(url.protocol==='https:'||
+    (url.protocol==='http:'&&['localhost','127.0.0.1'].includes(url.hostname)));
+  }catch{return false}
+ }));
  server.on('upgrade',(req,socket,head)=>{
   let url;try{url=new URL(req.url,'http://localhost')}catch{socket.destroy();return}
   if(url.pathname!=='/rt'||!allowed.has(req.headers.origin)||!/^[-\w]{1,100}$/.test(url.searchParams.get('space')||'')){socket.destroy();return}
