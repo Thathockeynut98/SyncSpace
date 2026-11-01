@@ -1,5 +1,5 @@
 import '../cosmic-layout.css';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { syncAuth } from '@/lib/syncAuth';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -105,7 +105,7 @@ export default function Space() {
       } catch (error) {
         const status = error?.status || error?.response?.status;
         if (status === 401) {
-          window.location.assign("/login");
+          window.location.hash = "#/login";
           return;
         }
         console.error("Failed to load SyncSpace room:", error);
@@ -184,7 +184,7 @@ export default function Space() {
         item.id === "sleep" ? "WIND DOWN" :
         null;
       return (
-        <React.Fragment key={item.id}>
+        <Fragment key={item.id}>
           {heading && !ssSidebarCollapsed && (
             <div className="ss-cosmic-nav-heading">{heading}</div>
           )}
@@ -202,7 +202,7 @@ export default function Space() {
               <span className="ss-cosmic-active-dot" />
             )}
           </button>
-        </React.Fragment>
+        </Fragment>
       );
     })}
   </nav>
