@@ -1,0 +1,257 @@
+/* SyncSpace 2.1 - Cosmic Sidebar */
+.ss-cosmic-universe {
+  --ss-sidebar-width: 310px;
+  min-height: 100vh;
+  color: #f6f2ff;
+  background:
+    radial-gradient(ellipse at 85% 10%, rgba(126, 69, 199, .17), transparent 46%),
+    radial-gradient(ellipse at 12% 88%, rgba(63, 75, 164, .13), transparent 50%),
+    #090b17;
+}
+.ss-cosmic-universe.ss-layout-collapsed {
+  --ss-sidebar-width: 76px;
+}
+.ss-cosmic-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 60;
+  width: 310px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 22px 14px;
+  background: linear-gradient(160deg, rgba(26, 19, 51, .98), rgba(11, 12, 27, .98));
+  border-right: 1px solid rgba(174, 133, 255, .16);
+  box-shadow: 12px 0 60px rgba(0, 0, 0, .25);
+  backdrop-filter: blur(24px);
+  transition: width .2s ease;
+}
+.ss-cosmic-sidebar.ss-is-collapsed {
+  width: 76px;
+  padding-inline: 10px;
+}
+.ss-cosmic-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 54px;
+  margin-bottom: 24px;
+}
+.ss-cosmic-logo {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  color: white;
+  font-size: 28px;
+  background: linear-gradient(135deg, #ae80ff, #6550cb);
+  box-shadow: 0 8px 28px rgba(125, 91, 250, .28);
+}
+.ss-cosmic-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.ss-cosmic-brand-text strong {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -.04em;
+  color: #fff;
+}
+.ss-cosmic-brand-text small {
+  font-size: 9px;
+  letter-spacing: .13em;
+  font-weight: 800;
+  color: #a98be8;
+}
+.ss-cosmic-collapse {
+  margin-left: auto;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  background: rgba(255, 255, 255, .05);
+  color: #d4c3ff;
+  font-size: 22px;
+  cursor: pointer;
+}
+.ss-is-collapsed .ss-cosmic-brand {
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.ss-is-collapsed .ss-cosmic-collapse {
+  margin: 0;
+}
+.ss-cosmic-space-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  margin-bottom: 25px;
+  border-radius: 17px;
+  border: 1px solid rgba(169, 125, 255, .2);
+  background: linear-gradient(110deg, rgba(116, 75, 198, .23), rgba(52, 43, 99, .13));
+}
+.ss-cosmic-space-heart {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 42px;
+  border-radius: 13px;
+  background: rgba(171, 114, 255, .17);
+  color: #f0b4e5;
+  font-size: 26px;
+}
+.ss-cosmic-space-card > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.ss-cosmic-space-card strong {
+  font-size: 13px;
+  color: #fff;
+}
+.ss-cosmic-space-card small {
+  font-size: 10px;
+  color: #a9a0c6;
+}
+.ss-cosmic-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  scrollbar-width: thin;
+  scrollbar-color: #594b83 transparent;
+}
+.ss-cosmic-nav-heading {
+  padding: 20px 13px 7px;
+  color: #81799c;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .13em;
+}
+.ss-cosmic-nav-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 12px 14px;
+  border-radius: 13px;
+  border: 1px solid transparent;
+  color: #b3adcb;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background .18s ease, color .18s ease, border-color .18s ease;
+}
+.ss-cosmic-nav-item svg {
+  flex: 0 0 auto;
+  color: #b69af9;
+}
+.ss-cosmic-nav-item:hover {
+  color: white;
+  background: rgba(255, 255, 255, .055);
+}
+.ss-cosmic-nav-item.ss-cosmic-selected {
+  color: white;
+  border-color: rgba(163, 124, 255, .22);
+  background: linear-gradient(100deg, rgba(137, 97, 245, .3), rgba(105, 72, 195, .09));
+}
+.ss-cosmic-active-dot {
+  width: 7px;
+  height: 7px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: #bb9cff;
+  box-shadow: 0 0 12px #bb9cff;
+}
+.ss-is-collapsed .ss-cosmic-nav-item {
+  justify-content: center;
+  padding-inline: 0;
+}
+.ss-cosmic-footer {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 15px 10px 4px;
+  border-top: 1px solid rgba(255, 255, 255, .07);
+  color: #9a90b6;
+  font-size: 11px;
+}
+.ss-cosmic-footer-icon {
+  color: #b99bff;
+  font-size: 18px;
+}
+.ss-cosmic-main {
+  margin-left: var(--ss-sidebar-width);
+  max-width: none;
+  min-height: 100vh;
+  transition: margin-left .2s ease;
+}
+.ss-cosmic-main > * {
+  max-width: 1450px;
+  margin-left: auto;
+  margin-right: auto;
+}
+@media (max-width: 900px) {
+  .ss-cosmic-sidebar {
+    width: 76px;
+    padding-inline: 10px;
+  }
+  .ss-cosmic-sidebar .ss-cosmic-brand-text,
+  .ss-cosmic-sidebar .ss-cosmic-space-card,
+  .ss-cosmic-sidebar .ss-cosmic-nav-heading,
+  .ss-cosmic-sidebar .ss-cosmic-nav-item span,
+  .ss-cosmic-sidebar .ss-cosmic-footer {
+    display: none;
+  }
+  .ss-cosmic-sidebar .ss-cosmic-brand {
+    flex-direction: column;
+  }
+  .ss-cosmic-sidebar .ss-cosmic-collapse {
+    margin: 0;
+  }
+  .ss-cosmic-sidebar .ss-cosmic-nav-item {
+    justify-content: center;
+    padding-inline: 0;
+  }
+  .ss-cosmic-main {
+    margin-left: 76px;
+  }
+}
+@media (max-width: 600px) {
+  .ss-cosmic-sidebar {
+    width: 62px;
+    padding-inline: 6px;
+  }
+  .ss-cosmic-logo {
+    width: 42px;
+    height: 42px;
+    flex-basis: 42px;
+  }
+  .ss-cosmic-main {
+    margin-left: 62px;
+    padding-inline: 8px;
+  }
+  .ss-cosmic-nav-item {
+    padding: 10px 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ss-cosmic-universe *,
+  .ss-cosmic-universe *::before,
+  .ss-cosmic-universe *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

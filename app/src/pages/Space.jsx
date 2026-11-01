@@ -1,3 +1,4 @@
+import '../cosmic-layout.css';
 import { useEffect, useState } from 'react';
 import { syncAuth } from '@/lib/syncAuth';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -68,6 +69,7 @@ export default function Space() {
   const [space, setSpace] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('home');
+  const [ssSidebarCollapsed, setSsSidebarCollapsed] = useState(false);
   const [callPanel, setCallPanel] = useState('calls');
 
   // Warms and dims everything once it gets late on this person's own clock.
@@ -133,7 +135,7 @@ export default function Space() {
   const callBarVisible = tab !== 'call' && (call.incoming || call.phase !== 'idle' || call.elsewhere);
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden">
+    <div className={`ss-cosmic-universe relative min-h-screen overflow-x-hidden ${ssSidebarCollapsed ? "ss-layout-collapsed" : ""}`}>
       <SpaceBackdrop />
       <SpaceHeader
         space={space}
@@ -144,9 +146,75 @@ export default function Space() {
           setSpace(nextSpace);
         }}
       />
-      <TabDock tabs={TABS} active={tab} onChange={setTab} />
+      <div className={`ss-cosmic-sidebar ${ssSidebarCollapsed ? "ss-is-collapsed" : ""}`}>
+  <div className="ss-cosmic-brand">
+    <div className="ss-cosmic-logo">✦</div>
+    {!ssSidebarCollapsed && (
+      <div className="ss-cosmic-brand-text">
+        <strong>SyncSpace</strong>
+        <small>OUR LITTLE UNIVERSE</small>
+      </div>
+    )}
+    <button
+      type="button"
+      className="ss-cosmic-collapse"
+      onClick={() => setSsSidebarCollapsed(!ssSidebarCollapsed)}
+      aria-label={ssSidebarCollapsed ? "Expand navigation" : "Collapse navigation"}
+    >
+      {ssSidebarCollapsed ? "›" : "‹"}
+    </button>
+  </div>
+  {!ssSidebarCollapsed && (
+    <div className="ss-cosmic-space-card">
+      <span className="ss-cosmic-space-heart">♡</span>
+      <div>
+        <strong>Our Little Space</strong>
+        <small>Our corner of the universe</small>
+      </div>
+    </div>
+  )}
+  <nav className="ss-cosmic-nav" aria-label="Shared space navigation">
+    {TABS.map((item, index) => {
+      const Icon = item.icon;
+      const selected = tab === item.id;
+      const heading =
+        index === 0 ? "YOUR SPACE" :
+        item.id === "watch" ? "TOGETHER" :
+        item.id === "vesperan" ? "OUR UNIVERSE" :
+        item.id === "sleep" ? "WIND DOWN" :
+        null;
+      return (
+        <React.Fragment key={item.id}>
+          {heading && !ssSidebarCollapsed && (
+            <div className="ss-cosmic-nav-heading">{heading}</div>
+          )}
+          <button
+            type="button"
+            title={item.label}
+            aria-label={item.label}
+            aria-current={selected ? "page" : undefined}
+            className={`ss-cosmic-nav-item ${selected ? "ss-cosmic-selected" : ""}`}
+            onClick={() => setTab(item.id)}
+          >
+            {Icon && <Icon size={19} />}
+            {!ssSidebarCollapsed && <span>{item.label}</span>}
+            {selected && !ssSidebarCollapsed && (
+              <span className="ss-cosmic-active-dot" />
+            )}
+          </button>
+        </React.Fragment>
+      );
+    })}
+  </nav>
+  {!ssSidebarCollapsed && (
+    <div className="ss-cosmic-footer">
+      <span className="ss-cosmic-footer-icon">✧</span>
+      <span>Your private shared space</span>
+    </div>
+  )}
+</div>
 
-      <main className="relative z-10 mx-auto w-full max-w-6xl px-4 pb-28 pt-4 md:pb-16 md:pt-6">
+      <main className="ss-cosmic-main relative z-10 w-full px-4 pb-28 pt-4 md:pb-16 md:pt-6">
         <AnimatePresence mode="wait">
           <motion.div
             key={tab}
