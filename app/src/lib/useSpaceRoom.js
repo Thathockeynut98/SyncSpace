@@ -19,14 +19,14 @@ export function useSpaceRoom(spaceId, myName) {
  useEffect(()=>{
   if(!spaceId)return;
   let closed=false, ws, retry;
+  let attempts=0;
   let id=sessionStorage.getItem('syncspace:conn');
   if(!id){id=crypto.randomUUID();sessionStorage.setItem('syncspace:conn',id);}
   const connect=()=>{
    if(closed)return;
-   const protocol=location.protocol==='https:'?'wss:':'ws:';
    ws=new WebSocket(`${syncspaceWsBase}?space=${encodeURIComponent(spaceId)}&id=${encodeURIComponent(id)}`);
    socket.current=ws;
-   ws.onopen=()=>{ws.send(JSON.stringify({type:'auth',token:syncAuth.getToken()}))};
+   ws.onopen=()=>{attempts=0;ws.send(JSON.stringify({type:'auth',token:syncAuth.getToken()}))};
    ws.onerror=()=>setConnected(false);
    ws.onmessage=e=>{
     let msg;try{msg=JSON.parse(e.data)}catch{return;}
@@ -36,13 +36,26 @@ export function useSpaceRoom(spaceId, myName) {
     if(msg.type==='state'){setRoomState(msg);return;}
     handlers.current.get(msg.type)?.forEach(fn=>fn(msg));
    };
-   ws.onclose=e=>{setConnected(false);if(!closed && e.code!==1008)retry=setTimeout(connect,2000);};
+   ws.onclose=e=>{
+    setConnected(false);
+    setPeers([]);
+    if(!closed && e.code!==1008){
+      const delay=Math.min(30000,1000*Math.pow(2,Math.min(attempts++,5)));
+      retry=setTimeout(connect,delay);
+    }
+   };
   };
   const changed=()=>sendLocal();
   const sendLocal=()=>{if(ws?.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type:'entities-changed'}))};
+  const reconnectOnOnline=()=>{
+    if(closed || ws?.readyState===WebSocket.OPEN || ws?.readyState===WebSocket.CONNECTING)return;
+    clearTimeout(retry);
+    connect();
+  };
   window.addEventListener('syncspace:local-change',changed);
+  window.addEventListener('online',reconnectOnOnline);
   connect();
-  return()=>{window.removeEventListener('syncspace:local-change',changed);closed=true;clearTimeout(retry);ws?.close();socket.current=null;setConnected(false);setPeers([]);setSeat(null);setRoomState({playback:null,timer:null});};
+  return()=>{window.removeEventListener('syncspace:local-change',changed);window.removeEventListener('online',reconnectOnOnline);closed=true;clearTimeout(retry);ws?.close();socket.current=null;setConnected(false);setPeers([]);setSeat(null);setRoomState({playback:null,timer:null});};
  },[spaceId]);
  const send=useCallback(msg=>{if(socket.current?.readyState===WebSocket.OPEN)socket.current.send(JSON.stringify(msg));},[]);
  const on=useCallback((type,fn)=>{if(!handlers.current.has(type))handlers.current.set(type,new Set());handlers.current.get(type).add(fn);return()=>{handlers.current.get(type)?.delete(fn)};},[]);
