@@ -28,6 +28,9 @@ jobs:
         run: npm ci
       - name: Build SyncSpace 2.1
         working-directory: app
+        env:
+          VITE_SYNCSPACE_API_URL: https://gamingserver2.tail28b71c.ts.net
+          VITE_SYNCSPACE_WS_URL: wss://gamingserver2.tail28b71c.ts.net/rt
         run: npm run build
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
