@@ -22,8 +22,40 @@ async function accountFromToken(req) {
   const result = await pool.query("SELECT a.id,a.email FROM app.sessions s JOIN app.accounts a ON a.id=s.account_id WHERE s.token_hash=$1 AND s.expires_at>now()", [tokenHash(token)]);
   return result.rows[0] || null;
 }
+// Only explicitly approved browser origins may make cross-origin API requests.
+// Configure a comma-separated SYNCSPACE_ALLOWED_ORIGINS on the API host.
+// This is a browser boundary, not a replacement for authentication.
+const allowedOrigins = new Set(
+  (process.env.SYNCSPACE_ALLOWED_ORIGINS || "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter((origin) => {
+      try {
+        const parsed = new URL(origin);
+        return (parsed.protocol === "https:" || (parsed.protocol === "http:" && ["localhost", "127.0.0.1"].includes(parsed.hostname))) &&
+          parsed.origin === origin;
+      } catch {
+        return false;
+      }
+    })
+);
 const server = http.createServer(async (req, res) => {
   const path = new URL(req.url, "http://localhost").pathname;
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader("Vary", "Origin");
+    if (!allowedOrigins.has(origin)) {
+      return reply(res, 403, { error: "Origin not allowed" });
+    }
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+    res.setHeader("Access-Control-Max-Age", "600");
+  }
+  if (req.method === "OPTIONS") {
+    res.writeHead(204, { "Cache-Control": "no-store" });
+    return res.end();
+  }
   try {
     if (req.method === "GET" && path === "/health") {
       await pool.query("SELECT 1");
