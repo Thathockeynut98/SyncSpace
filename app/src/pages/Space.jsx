@@ -68,6 +68,7 @@ export default function Space() {
   const [space, setSpace] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('home');
+  const [callPanel, setCallPanel] = useState('calls');
 
   // Warms and dims everything once it gets late on this person's own clock.
   useWindDown();
@@ -164,7 +165,68 @@ export default function Space() {
             {tab === 'read' && <ReadTogether space={space} user={user} room={room} />}
             {tab === 'vesperan' && <VesperanCodex />}
             {tab === 'radio' && <RadioRoom room={room} />}
-            {tab === 'call' && <CallRoom call={call} />}
+            {tab === 'call' && (
+  <section className="space-y-5">
+    <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-purple-400/20 bg-purple-950/30 p-3 backdrop-blur-xl">
+      <button
+        type="button"
+        onClick={() => setCallPanel('calls')}
+        className={`rounded-xl px-5 py-3 text-sm font-semibold transition-all ${
+          callPanel === 'calls'
+            ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20'
+            : 'bg-white/5 text-purple-200 hover:bg-white/10'
+        }`}
+      >
+        Calls
+      </button>
+      <button
+        type="button"
+        onClick={() => setCallPanel('lab')}
+        className={`rounded-xl px-5 py-3 text-sm font-semibold transition-all ${
+          callPanel === 'lab'
+            ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20'
+            : 'bg-white/5 text-purple-200 hover:bg-white/10'
+        }`}
+      >
+        Connection Lab
+      </button>
+
+      <button type="button" onClick={() => setCallPanel('reliability')}
+        className={`rounded-xl px-5 py-3 text-sm font-semibold transition-all ${
+          callPanel === 'reliability'
+            ? 'bg-purple-500 text-white shadow-lg shadow-purple-500/20'
+            : 'bg-white/5 text-purple-200 hover:bg-white/10'
+        }`}>
+        Reliability
+      </button>
+      <span className="ml-auto text-xs text-purple-200/70">
+        SyncSpace 2.1
+      </span>
+    </div>
+    {callPanel === 'calls' && (
+      <CallRoom call={call} />
+    )}
+    {/* SYNCSPACE_RELIABILITY_V1 */}
+    {callPanel === 'reliability' && (
+      <div className="overflow-hidden rounded-3xl border border-purple-400/20 bg-[#100d20]">
+        <iframe title="SyncSpace Call Reliability Dashboard" src="/call-reliability.html"
+          className="block h-[1500px] w-full border-0 md:h-[1250px]"
+          allow="camera; microphone; autoplay" />
+      </div>
+    )}
+
+    {callPanel === 'lab' && (
+      <div className="overflow-hidden rounded-3xl border border-purple-400/20 bg-[#100d20] shadow-2xl">
+        <iframe
+          title="SyncSpace Connection Lab"
+          src="/call-diagnostics.html"
+          className="block h-[1250px] w-full border-0 md:h-[1150px]"
+          allow="camera; microphone; display-capture; autoplay"
+        />
+      </div>
+    )}
+  </section>
+)}
             {tab === 'sleep' && <SleepZone space={space} user={user} room={room} />}
             {tab === 'voice' && <VoiceNoteVault space={space} user={user} />}
             {tab === 'photos' && <PhotoWall space={space} user={user} />}

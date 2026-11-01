@@ -5,6 +5,7 @@ import CallStage from './CallStage';
 import CallSettings from './CallSettings';
 import LineHealth from './LineHealth';
 import CallQualityMenu from './CallQualityMenu';
+import CallHealthPanel from './CallHealthPanel';
 
 export default function CallRoom({ call }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -101,6 +102,7 @@ export default function CallRoom({ call }) {
             />
           )}
 
+          <div className="mt-5 text-left"><CallHealthPanel call={call} /></div>
           <div className="mt-6 grid gap-2 text-left sm:grid-cols-2">
             <div className="rounded-2xl border border-white/8 bg-white/[0.03] p-3">
               <MonitorUp className="h-4 w-4 text-indigo-300" />
@@ -159,6 +161,8 @@ export default function CallRoom({ call }) {
           )}
         </div>
       </div>
+
+      <CallHealthPanel call={call} />
 
       <CallStage
         remote={call.remote}

@@ -82,6 +82,14 @@ export function useCall(room) {
     }
   });
   const [voice, setVoice] = useState(loadVoice);
+  // Call Quality 2.0 preferences are local to this browser.
+  const [shareProfile, setShareProfile] = useState(() => {
+    try { return localStorage.getItem('syncspace:share-profile-v2') === 'motion' ? 'motion' : 'detail'; }
+    catch { return 'detail'; }
+  });
+  const shareProfileRef = useRef(shareProfile);
+  const [cleanMic, setCleanMic] = useState(false);
+  const cleanPreviousRef = useRef(null);
   const [level, setLevel] = useState(0);
   const [deafened, setDeafened] = useState(false);
   // Whether the screen is held lit through the call, or may go dark on its own.
@@ -333,7 +341,7 @@ export function useCall(room) {
     if (!slot?.sender?.track) return;
     const screen = mode !== 'camera';
     const tier = tunerRef.current.tier;
-    const preference = screen && tier.scale < 2 ? 'maintain-resolution' : 'balanced';
+    const preference = screen && shareProfileRef.current === 'detail' ? 'maintain-resolution' : 'balanced';
     try {
       slot.degradationPreference = preference;
     } catch (error) {
@@ -343,8 +351,9 @@ export function useCall(room) {
       const params = slot.sender.getParameters();
       if (!params.encodings || params.encodings.length === 0) params.encodings = [{}];
       params.encodings[0].maxBitrate = screen ? tier.screen : tier.camera;
-      params.encodings[0].maxFramerate = tier.fps;
-      params.encodings[0].scaleResolutionDownBy = tier.scale;
+      params.encodings[0].maxFramerate = screen ? Math.min(tier.fps, shareProfileRef.current === 'motion' ? 60 : 30) : tier.fps;
+      // Manual quality must not be silently scaled down by the adaptive tuner.
+      params.encodings[0].scaleResolutionDownBy = qualityRef.current === 'auto' ? tier.scale : 1;
       params.encodings[0].networkPriority = 'high';
       params.degradationPreference = preference;
       await slot.sender.setParameters(params);
@@ -1066,6 +1075,21 @@ export function useCall(room) {
     [stopCam]
   );
 
+  const changeShareProfile = useCallback(async (profile) => {
+    if (profile !== 'detail' && profile !== 'motion') return;
+    shareProfileRef.current = profile;
+    setShareProfile(profile);
+    try { localStorage.setItem('syncspace:share-profile-v2', profile); } catch (_) {}
+    const track = screenRef.current?.getVideoTracks()[0];
+    if (track) {
+      track.contentHint = profile === 'detail' ? 'detail' : 'motion';
+      try { await track.applyConstraints({ frameRate: { ideal: profile === 'motion' ? 60 : 30 } }); }
+      catch (_) { /* capture framerate is browser controlled */ }
+      const pc = pcRef.current;
+      if (pc) await tuneVideo(pc, 'screen');
+    }
+  }, [tuneVideo]);
+
   const toggleShare = useCallback(async () => {
     if (screenRef.current) {
       await stopScreen();
@@ -1085,7 +1109,7 @@ export function useCall(room) {
     const picture = {
       width: { ideal: SCREEN_WIDTH, max: SCREEN_WIDTH },
       height: { ideal: SCREEN_HEIGHT, max: SCREEN_HEIGHT },
-      frameRate: { ideal: SCREEN_FPS, max: SCREEN_FPS },
+      frameRate: { ideal: shareProfileRef.current === 'motion' ? SCREEN_FPS : 30, max: SCREEN_FPS },
     };
     try {
       // A tab is asked for first, and this app's own tab is left out of the list.
@@ -1106,6 +1130,8 @@ export function useCall(room) {
           audio: sound,
           selfBrowserSurface: 'exclude',
           surfaceSwitching: 'include',
+          systemAudio: 'include',
+          windowAudio: 'window',
         });
       } catch (err) {
         if (err?.name === 'NotAllowedError' || err?.name === 'AbortError') throw err;
@@ -1118,7 +1144,7 @@ export function useCall(room) {
       }
       const [track] = stream.getVideoTracks();
       // Sharp detail over motion, so text on the shared screen stays readable.
-      track.contentHint = 'detail';
+      track.contentHint = shareProfileRef.current === 'motion' ? 'motion' : 'detail';
       await slot.sender.replaceTrack(track);
       screenRef.current = stream;
       await tuneVideo(pc, 'screen');
@@ -1128,19 +1154,33 @@ export function useCall(room) {
       track.onended = () => stopScreen();
       const [screenSound] = stream.getAudioTracks();
       const source = track.getSettings?.().displaySurface;
-      // Only a tab's sound is safe to pass on. A whole screen or a single window
-      // carries everything the machine plays, the call included, so its sound
-      // stays here and only the picture travels.
-      if (screenSound && source !== 'window' && source !== 'monitor') {
-        await mixShareAudio(pc, screenSound);
-        setShareHint('');
+      // Echo-Safe is the default. A browser tab's audio is isolated from
+      // SyncSpace's own tab (which is excluded in the capture picker).
+      // A whole monitor/window can include the remote participant's playback.
+      // Web apps cannot reliably subtract that playback from system audio.
+      if (screenSound) {
+        const systemCapture = source === 'monitor' || source === 'window' || !source;
+        let sendAudio = !systemCapture;
+        if (systemCapture) {
+          sendAudio = window.confirm(
+            'FULL SYSTEM AUDIO (echo risk)\n\n' +
+            'Echo-Safe is the default: Cancel shares VIDEO ONLY.\n\n' +
+            'OK shares captured desktop sound, which MAY include your partner\'s voice even with headphones. ' +
+            'Browsers cannot reliably remove their voice from system audio.\n\n' +
+            'For isolated audio, share a browser tab instead.'
+          );
+        }
+        if (sendAudio) {
+          await mixShareAudio(pc, screenSound);
+          setShareHint(systemCapture
+            ? 'Full system audio ON: your partner may hear their own voice. Stop and reshare to return to Echo-Safe.'
+            : 'Echo-Safe: sharing tab audio separately from the SyncSpace call tab.');
+        } else {
+          screenSound.stop();
+          setShareHint('Echo-Safe: desktop video only. Share a browser tab for isolated audio.');
+        }
       } else {
-        if (screenSound) screenSound.stop();
-        setShareHint(
-          screenSound
-            ? 'Sound only travels from a shared browser tab — a whole screen would send the call back to them.'
-            : 'Share a browser tab to send its sound along with the picture.'
-        );
+        setShareHint('Video only: the browser supplied no audio track. To share sound, enable audio in the browser picker where available.');
       }
     } catch (err) {
       setError('Screen share was cancelled.');
@@ -1224,6 +1264,20 @@ export function useCall(room) {
       return next;
     });
   }, [applySuppression]);
+
+  const changeCleanMic = useCallback((enabled) => {
+    setCleanMic(Boolean(enabled));
+    if (enabled) {
+      if (!cleanPreviousRef.current) cleanPreviousRef.current = {
+        gateOn: voiceRef.current.gateOn, suppressOn: voiceRef.current.suppressOn,
+        isolation: voiceRef.current.isolation
+      };
+      changeVoice({ gateOn: false, suppressOn: false, isolation: false });
+    } else if (cleanPreviousRef.current) {
+      changeVoice(cleanPreviousRef.current);
+      cleanPreviousRef.current = null;
+    }
+  }, [changeVoice]);
 
   const releaseMic = useCallback(() => {
     const mic = micRef.current;
@@ -1606,8 +1660,153 @@ export function useCall(room) {
   const mine = peers.find((item) => item.seat === seat) || null;
   const elsewhere = phase === 'idle' && mine?.call === true;
 
+  // SYNCSPACE_LIVE_DEVICES_V1: device replacement and non-sensitive ICE diagnostics.
+  const [callStats, setCallStats] = useState(null);
+  const [deviceBusy, setDeviceBusy] = useState(false);
+  const [deviceMessage, setDeviceMessage] = useState('');
+  const [relayInfo, setRelayInfo] = useState({ stun: 0, turn: 0 });
+  const deviceBusyRef = useRef(false);
+  const statsPreviousRef = useRef(null);
+
+  const inspectRelays = useCallback(async () => {
+    try { await loadIce(); } catch (_) { /* retain last known configuration */ }
+    const servers = iceServersRef.current || [];
+    const urls = servers.flatMap((entry) => [entry.urls || []].flat());
+    const stun = urls.filter((url) => /^stuns?:/i.test(url)).length;
+    const turn = urls.filter((url) => /^turns?:/i.test(url)).length;
+    setRelayInfo({ stun, turn });
+  }, [loadIce, iceServersRef]);
+
+  const switchMicrophone = useCallback(async (deviceId) => {
+    if (deviceBusyRef.current) return;
+    deviceBusyRef.current = true;
+    setDeviceBusy(true);
+    let fresh = null;
+    let newMic = null;
+    const previousGraph = micRef.current;
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) throw new Error('Microphone access unavailable');
+      fresh = await navigator.mediaDevices.getUserMedia({ audio: {
+        deviceId: deviceId ? { exact: deviceId } : undefined,
+        echoCancellation: true, noiseSuppression: true, autoGainControl: true,
+        channelCount: 1, sampleRate: 48000
+      }, video: false });
+      const oldRaw = localRef.current;
+      const oldGraph = micRef.current;
+      const oldOutgoing = outgoingRef.current;
+      const previousTrack = oldOutgoing?.getAudioTracks()[0] || null;
+      const wasEnabled = oldRaw?.getAudioTracks()[0]?.enabled !== false;
+      fresh.getAudioTracks().forEach((track) => { track.enabled = wasEnabled; });
+      newMic = buildMic(fresh);
+      const nextTrack = newMic.getAudioTracks()[0];
+      if (!nextTrack) throw new Error('Selected microphone did not provide audio');
+      const pc = pcRef.current;
+      const sender = pc?.getSenders().find((item) => item.track?.kind === 'audio' || item.track === previousTrack);
+      if (pc && phaseRef.current !== 'idle' && !sender) throw new Error('Audio sender is not ready. Try again after the call connects.');
+      if (sender) await sender.replaceTrack(nextTrack);
+      localRef.current = fresh;
+      outgoingRef.current = newMic;
+      setLocal(fresh);
+      fresh.getAudioTracks().forEach((track) => { track.onended = () => micReviveRef.current?.(); });
+      if (oldRaw) oldRaw.getTracks().forEach((track) => { track.onended = null; track.stop(); });
+      if (oldGraph) {
+        try { oldGraph.dest.stream.getTracks().forEach((track) => track.stop()); oldGraph.source.disconnect(); oldGraph.ctx.close(); } catch (_) {}
+      } else if (oldOutgoing && oldOutgoing !== oldRaw) {
+        oldOutgoing.getTracks().forEach((track) => track.stop());
+      }
+      applySuppression(voiceRef.current.suppressOn !== false);
+      setDeviceMessage('Microphone changed without ending the call.');
+      setError('');
+    } catch (error) {
+      if (fresh && fresh !== localRef.current) fresh.getTracks().forEach((track) => track.stop());
+      // buildMic updates micRef; restore the previous chain if replacement failed.
+      if (micRef.current !== previousGraph) {
+        try { micRef.current?.dest?.stream?.getTracks().forEach((track) => track.stop()); micRef.current?.source?.disconnect(); micRef.current?.ctx?.close(); } catch (_) {}
+        micRef.current = previousGraph;
+      }
+      setDeviceMessage('Microphone switch failed: ' + (error?.message || 'Unknown error'));
+    } finally { deviceBusyRef.current = false; setDeviceBusy(false); }
+  }, [applySuppression, buildMic]);
+
+  const switchCameraDevice = useCallback(async (deviceId) => {
+    if (deviceBusyRef.current) return;
+    deviceBusyRef.current = true;
+    setDeviceBusy(true);
+    let fresh = null;
+    try {
+      if (!camRef.current) throw new Error('Turn on the camera before switching devices');
+      if (screenRef.current) throw new Error('Stop screen sharing before switching cameras');
+      fresh = await navigator.mediaDevices.getUserMedia({ audio: false, video: {
+        deviceId: deviceId ? { exact: deviceId } : undefined,
+        width: { ideal: CAMERA_WIDTH }, height: { ideal: CAMERA_HEIGHT },
+        frameRate: { ideal: CAMERA_FPS }
+      }});
+      const nextTrack = fresh.getVideoTracks()[0];
+      if (!nextTrack) throw new Error('Selected camera did not provide video');
+      const pc = pcRef.current;
+      const slot = pc ? videoTransceiver(pc) : null;
+      if (!slot?.sender) throw new Error('Camera sender unavailable');
+      await slot.sender.replaceTrack(nextTrack);
+      const old = camRef.current;
+      camRef.current = fresh;
+      setSelf(fresh);
+      setCam(true);
+      nextTrack.onended = () => stopCam();
+      if (old) old.getTracks().forEach((track) => { track.onended = null; track.stop(); });
+      await tuneVideo(pc, 'camera');
+      setDeviceMessage('Camera changed without ending the call.');
+      setError('');
+    } catch (error) {
+      if (fresh && fresh !== camRef.current) fresh.getTracks().forEach((track) => track.stop());
+      setDeviceMessage('Camera switch failed: ' + (error?.message || 'Unknown error'));
+    } finally { deviceBusyRef.current = false; setDeviceBusy(false); }
+  }, [stopCam, tuneVideo]);
+
+  useEffect(() => {
+    if (phase !== 'live') { setCallStats(null); statsPreviousRef.current = null; return undefined; }
+    let active = true;
+    const read = async () => {
+      const pc = pcRef.current;
+      if (!pc || pc.connectionState !== 'connected') return;
+      try {
+        const report = await pc.getStats();
+        let rtt = null, sent = 0, lost = 0, relay = 'Unknown', jitterMs = null, video = null;
+        let selectedPair = null;
+        report.forEach((item) => {
+          if (item.type === 'candidate-pair' && item.state === 'succeeded' && item.nominated) selectedPair = item;
+          if (item.type === 'remote-inbound-rtp' && item.kind === 'audio' && Number.isFinite(item.roundTripTime)) rtt = item.roundTripTime * 1000;
+          if (item.type === 'inbound-rtp' && !item.isRemote) {
+            sent += item.packetsReceived || 0; lost += Math.max(0, item.packetsLost || 0);
+            if (item.kind === 'audio' && Number.isFinite(item.jitter)) jitterMs = Math.round(item.jitter * 1000);
+          }
+          if (item.type === 'outbound-rtp' && item.kind === 'video' && !item.isRemote) {
+            video = { width: item.frameWidth ?? null, height: item.frameHeight ?? null,
+              fps: Number.isFinite(item.framesPerSecond) ? Math.round(item.framesPerSecond) : null };
+          }
+        });
+        if (selectedPair) {
+          if (rtt == null && Number.isFinite(selectedPair.currentRoundTripTime)) rtt = selectedPair.currentRoundTripTime * 1000;
+          const localCandidate = report.get(selectedPair.localCandidateId);
+          relay = localCandidate?.candidateType === 'relay' ? 'TURN relay' : localCandidate?.candidateType ? 'Direct / ' + localCandidate.candidateType : 'Unknown';
+        }
+        const previous = statsPreviousRef.current;
+        let lossPct = null;
+        if (previous && sent >= previous.sent && lost >= previous.lost) {
+          const receivedDelta = sent - previous.sent, lostDelta = lost - previous.lost;
+          if (receivedDelta + lostDelta > 0) lossPct = 100 * lostDelta / (receivedDelta + lostDelta);
+        }
+        statsPreviousRef.current = { sent, lost };
+        if (active) setCallStats({ rtt: rtt == null ? null : Math.round(rtt), lossPct: lossPct == null ? null : Number(lossPct.toFixed(1)), jitterMs, video, relay, connection: pc.connectionState, ice: pc.iceConnectionState });
+      } catch (_) { /* browser stats may be temporarily unavailable */ }
+    };
+    read();
+    const timer = window.setInterval(read, 3000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [phase]);
   return {
     duration,
+    callStats, deviceBusy, deviceMessage, relayInfo, inspectRelays, switchMicrophone, switchCameraDevice,
+    shareProfile, changeShareProfile, cleanMic, changeCleanMic,
     phase,
     incoming,
     elsewhere,
