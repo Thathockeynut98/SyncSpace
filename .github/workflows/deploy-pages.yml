@@ -1,9 +1,9 @@
-name: Deploy SyncSpace preview to GitHub Pages
+name: Deploy SyncSpace main to GitHub Pages
 on:
   push:
     branches: [main]
     paths:
-      - 'preview/**'
+      - 'app/**'
       - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 permissions:
@@ -14,20 +14,42 @@ concurrency:
   group: pages
   cancel-in-progress: true
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Install dependencies
+        working-directory: app
+        run: npm ci
+      - name: Build SyncSpace main with production API
+        working-directory: app
+        env:
+          VITE_SYNCSPACE_API_URL: https://gamingserver2.tail28b71c.ts.net
+          VITE_SYNCSPACE_WS_URL: wss://gamingserver2.tail28b71c.ts.net/rt
+        run: npm run build
+      - name: Verify API URL is embedded in build
+        run: |
+          grep -R -q 'gamingserver2.tail28b71c.ts.net' app/dist/assets/*.js || { echo 'Production API URL missing from bundle'; exit 1; }
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload website
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: app/dist
   deploy:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    needs: build
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-      - name: Upload static preview
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./preview
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
