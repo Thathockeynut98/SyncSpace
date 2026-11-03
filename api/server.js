@@ -14,6 +14,14 @@ async function bodyJson(req) {
   for await (const chunk of req) { text += chunk; if (text.length > 20000) throw new Error("Request too large"); }
   return JSON.parse(text || "{}");
 }
+async function developerRole(account) {
+  if (!account) return null;
+  const result = await pool.query(
+    "SELECT role FROM app.developer_roles WHERE email=$1 AND role='developer'",
+    [account.email]
+  );
+  return result.rows[0]?.role || null;
+}
 async function accountFromToken(req) {
   const auth = req.headers.authorization || "";
   if (!auth.startsWith("Bearer ")) return null;
@@ -36,16 +44,34 @@ const server = http.createServer(async (req, res) => {
       if (!user || !(await verifyPassword(password, user.password_hash))) return reply(res, 401, { error: "Invalid credentials" });
       const token = newToken();
       await pool.query("INSERT INTO app.sessions(token_hash,account_id,expires_at) VALUES ($1,$2,now()+interval '12 hours')", [tokenHash(token), user.id]);
-      return reply(res, 200, { token, expiresInSeconds: 43200, user: { id: String(user.id), email: user.email } });
+      return reply(res, 200, { token, expiresInSeconds: 43200, user: { id: String(user.id), email: user.email, role: await developerRole(user) || "member" } });
     }
     if (req.method === "GET" && path === "/auth/me") {
       const user = await accountFromToken(req);
-      return user ? reply(res, 200, { user: { id: String(user.id), email: user.email } }) : reply(res, 401, { error: "Unauthorized" });
+      return user ? reply(res, 200, { user: { id: String(user.id), email: user.email, role: await developerRole(user) || "member" } }) : reply(res, 401, { error: "Unauthorized" });
     }
     if (req.method === "POST" && path === "/auth/logout") {
       const auth = req.headers.authorization || "";
       if (auth.startsWith("Bearer ")) { const hash=tokenHash(auth.slice(7)); await pool.query("DELETE FROM app.sessions WHERE token_hash=$1", [hash]); realtime.revoke(hash); }
       return reply(res, 200, { status: "logged_out" });
+    }
+    if (path === "/developer/status") {
+      const account = await accountFromToken(req);
+      if (!account) return reply(res, 401, { error: "Unauthorized" });
+      if (await developerRole(account) !== "developer") return reply(res, 403, { error: "Forbidden" });
+      if (req.method !== "GET") return reply(res, 405, { error: "Method not allowed" });
+      await pool.query("SELECT 1");
+      const space = await pool.query(
+        "SELECT s.name FROM app.shared_spaces s JOIN app.shared_space_members m ON m.space_id=s.id WHERE m.account_id=$1 AND s.name=$2 LIMIT 1",
+        [account.id, "SyncSpace Testing Lab"]
+      );
+      return reply(res, 200, {
+        role: "developer",
+        api: "online",
+        database: "connected",
+        testingLab: space.rowCount ? "connected" : "not linked",
+        checks: ["Authentication", "Developer authorization", "Database connectivity", "Testing Lab membership"]
+      });
     }
     if(path==='/spaces'||path==='/spaces/join') { await handleSpaces({req,res,path,pool,accountFromToken,reply,bodyJson}); if(!res.writableEnded)reply(res,405,{error:'Method not allowed'}); return; }
     if (await handleEntities({req,res,url:new URL(req.url,"http://localhost"),pool,accountFromToken,reply,bodyJson})) return;
