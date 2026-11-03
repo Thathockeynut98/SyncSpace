@@ -1,6 +1,7 @@
 import { base44, setActiveSpace } from '@/api/base44Client';
 import { syncAuth } from '@/lib/syncAuth';
-const API = '/api';
+import { syncspaceApiBase } from '@/lib/syncspaceConnection';
+const API = syncspaceApiBase;
 async function spaceRequest(path, options = {}) {
   const token = syncAuth.getToken();
   if (!token) {
