@@ -103,7 +103,7 @@ export default function Space() {
       } catch (error) {
         const status = error?.status || error?.response?.status;
         if (status === 401) {
-          window.location.assign(`${import.meta.env.BASE_URL}login`);
+          window.location.assign(`${import.meta.env.BASE_URL}#/login`);
           return;
         }
         console.error("Failed to load SyncSpace room:", error);
