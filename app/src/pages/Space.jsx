@@ -15,7 +15,9 @@ import {
   Phone,
   PlayCircle,
   Radio,
+  Wrench,
 } from 'lucide-react';
+import DeveloperStudio from '@/components/space/DeveloperStudio';
 import SpaceBackdrop from '@/components/space/SpaceBackdrop';
 import SpaceHeader from '@/components/space/SpaceHeader';
 import TabDock from '@/components/space/TabDock';
@@ -130,6 +132,10 @@ export default function Space() {
     return <PairingScreen user={user} onReady={setSpace} />;
   }
 
+  const developerEnabled = user?.role === 'developer';
+  const availableTabs = developerEnabled
+    ? [...TABS, { id: 'developer', label: 'Developer Studio', short: 'Dev Studio', icon: Wrench }]
+    : TABS;
   const callBarVisible = tab !== 'call' && (call.incoming || call.phase !== 'idle' || call.elsewhere);
 
   return (
@@ -144,7 +150,7 @@ export default function Space() {
           setSpace(nextSpace);
         }}
       />
-      <TabDock tabs={TABS} active={tab} onChange={setTab} />
+      <TabDock tabs={availableTabs} active={tab} onChange={setTab} />
 
       <main className="relative z-10 mx-auto w-full max-w-6xl px-4 pb-28 pt-4 md:pb-16 md:pt-6">
         <AnimatePresence mode="wait">
@@ -156,8 +162,9 @@ export default function Space() {
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
           >
             {tab === 'home' && (
-              <HomeLanding space={space} user={user} room={room} tabs={TABS} onNavigate={setTab} />
+              <HomeLanding space={space} user={user} room={room} tabs={availableTabs} onNavigate={setTab} />
             )}
+            {tab === 'developer' && developerEnabled && <DeveloperStudio />}
             {tab === 'watch' && <WatchTogether space={space} user={user} room={room} />}
             {tab === 'canvas' && <CanvasNotes space={space} user={user} room={room} />}
             {tab === 'chat' && <ChatRoom space={space} user={user} room={room} />}
@@ -242,7 +249,7 @@ export default function Space() {
         user={user}
         room={room}
         call={call}
-        tabs={TABS}
+        tabs={availableTabs}
         currentTab={tab}
         onNavigate={setTab}
       />
