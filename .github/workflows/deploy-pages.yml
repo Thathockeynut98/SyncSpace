@@ -43,6 +43,7 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: app/dist
+          name: syncspace-pages-${{ github.run_id }}-${{ github.run_attempt }}
   deploy:
     environment:
       name: github-pages
@@ -53,3 +54,5 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          artifact_name: syncspace-pages-${{ github.run_id }}-${{ github.run_attempt }}
