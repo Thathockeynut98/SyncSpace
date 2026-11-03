@@ -103,7 +103,7 @@ export default function Space() {
       } catch (error) {
         const status = error?.status || error?.response?.status;
         if (status === 401) {
-          window.location.assign("/login");
+          window.location.assign(`${import.meta.env.BASE_URL}login`);
           return;
         }
         console.error("Failed to load SyncSpace room:", error);
@@ -209,7 +209,7 @@ export default function Space() {
     {/* SYNCSPACE_RELIABILITY_V1 */}
     {callPanel === 'reliability' && (
       <div className="overflow-hidden rounded-3xl border border-purple-400/20 bg-[#100d20]">
-        <iframe title="SyncSpace Call Reliability Dashboard" src="/call-reliability.html"
+        <iframe title="SyncSpace Call Reliability Dashboard" src={`${import.meta.env.BASE_URL}call-reliability.html`}
           className="block h-[1500px] w-full border-0 md:h-[1250px]"
           allow="camera; microphone; autoplay" />
       </div>
@@ -219,7 +219,7 @@ export default function Space() {
       <div className="overflow-hidden rounded-3xl border border-purple-400/20 bg-[#100d20] shadow-2xl">
         <iframe
           title="SyncSpace Connection Lab"
-          src="/call-diagnostics.html"
+          src={`${import.meta.env.BASE_URL}call-diagnostics.html`}
           className="block h-[1250px] w-full border-0 md:h-[1150px]"
           allow="camera; microphone; display-capture; autoplay"
         />
