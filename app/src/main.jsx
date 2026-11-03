@@ -8,7 +8,7 @@ import '@/videoFullscreen.css'
 // still reach you with an alert while it sits in the background.
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {});
   });
 }
 
