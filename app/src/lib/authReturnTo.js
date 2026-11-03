@@ -11,10 +11,10 @@
 export function safeReturnTo() {
   const home = import.meta.env.BASE_URL || "/";
   const raw = new URLSearchParams(window.location.search).get("returnTo");
-  if (!raw) return home;
+  if (!raw) return `${home}#/`;
   try {
     const url = new URL(raw, window.location.origin);
-    if (url.origin !== window.location.origin) return home;
+    if (url.origin !== window.location.origin) return `${home}#/`;
     // Only access_token/clear_access_token are still URL-read by app-params.js, but the
     // whole bootstrap set stays stripped: one going back to a URL read must not silently
     // become injectable again. Normal app-flow params (e.g. the OAuth consent ctx) are kept.
@@ -22,10 +22,11 @@ export function safeReturnTo() {
       url.searchParams.delete(p);
     }
     const path = url.pathname + url.search;
-    if (!path.startsWith("/") || path.startsWith("//") || path.includes("\\")) return home;
-    if (home !== "/" && path !== home.slice(0, -1) && !path.startsWith(home)) return home;
-    return path;
+    if (!path.startsWith("/") || path.startsWith("//") || path.includes("\\")) return `${home}#/`;
+    if (home !== "/" && path !== home.slice(0, -1) && !path.startsWith(home)) return `${home}#/`;
+    const route = path.startsWith(home) ? path.slice(home.length) : "";
+    return `${home}#/${route.replace(/^#?\/?/, "")}`;
   } catch {
-    return home;
+    return `${home}#/`;
   }
 }
