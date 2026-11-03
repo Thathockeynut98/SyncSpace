@@ -1,7 +1,7 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import path from "node:path";
-export default defineConfig({
+export default defineConfig({ base: "/SyncSpace/",
   plugins: [react()],
   resolve: {
     alias: {
